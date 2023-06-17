@@ -27,10 +27,8 @@ import (
 	"go.uber.org/zap/zapcore"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/boramalper/magnetico/pkg/persistence"
+	"github.com/tgragnato/magnetico/pkg/persistence"
 )
-
-var compiledOn string
 
 // Set a Decoder instance as a package global, because it caches
 // meta-data about structs, and an instance can be shared safely.
@@ -64,7 +62,6 @@ func main() {
 	zap.L().Info("magneticow v0.12.0 has been started.")
 	zap.L().Info("Copyright (C) 2017-2020  Mert Bora ALPER <bora@boramalper.org>.")
 	zap.L().Info("Dedicated to Cemile Binay, in whose hands I thrived.")
-	zap.S().Infof("Compiled on %s", compiledOn)
 
 	if err := parseFlags(); err != nil {
 		zap.S().Errorf("error while parsing flags: %s", err.Error())
@@ -310,7 +307,7 @@ func loadCred(cred string) error {
 //
 // Most web browser display a dialog with something like:
 //
-//    The website says: "<realm>"
+//	The website says: "<realm>"
 //
 // Which is really stupid so you may want to set the realm to a message rather than
 // an actual realm.

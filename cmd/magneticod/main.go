@@ -1,7 +1,6 @@
 package main
 
 import (
-	"math/rand"
 	"net"
 	"os"
 	"os/signal"
@@ -16,11 +15,11 @@ import (
 
 	"github.com/Wessie/appdirs"
 
-	"github.com/boramalper/magnetico/cmd/magneticod/bittorrent/metadata"
-	"github.com/boramalper/magnetico/cmd/magneticod/dht"
+	"github.com/tgragnato/magnetico/cmd/magneticod/bittorrent/metadata"
+	"github.com/tgragnato/magnetico/cmd/magneticod/dht"
 
-	"github.com/boramalper/magnetico/pkg/persistence"
-	"github.com/boramalper/magnetico/pkg/util"
+	"github.com/tgragnato/magnetico/pkg/persistence"
+	"github.com/tgragnato/magnetico/pkg/util"
 )
 
 type opFlags struct {
@@ -35,8 +34,6 @@ type opFlags struct {
 	Verbosity int
 	Profile   string
 }
-
-var compiledOn string
 
 func main() {
 	loggerLevel := zap.NewAtomicLevel()
@@ -59,7 +56,6 @@ func main() {
 	zap.L().Info("magneticod v0.12.0 has been started.")
 	zap.L().Info("Copyright (C) 2017-2020  Mert Bora ALPER <bora@boramalper.org>.")
 	zap.L().Info("Dedicated to Cemile Binay, in whose hands I thrived.")
-	zap.S().Infof("Compiled on %s", compiledOn)
 
 	switch opFlags.Verbosity {
 	case 0:
@@ -84,9 +80,6 @@ func main() {
 			profile.MemProfileRate(1),
 		).Stop()
 	}
-
-	// Initialise the random number generator
-	rand.Seed(time.Now().UnixNano())
 
 	// Handle Ctrl-C gracefully.
 	interruptChan := make(chan os.Signal, 1)

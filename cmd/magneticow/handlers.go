@@ -7,7 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/boramalper/magnetico/pkg/persistence"
+	"github.com/tgragnato/magnetico/pkg/persistence"
 )
 
 // DONE

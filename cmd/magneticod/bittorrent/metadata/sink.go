@@ -8,9 +8,9 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/boramalper/magnetico/cmd/magneticod/dht"
-	"github.com/boramalper/magnetico/pkg/persistence"
-	"github.com/boramalper/magnetico/pkg/util"
+	"github.com/tgragnato/magnetico/cmd/magneticod/dht"
+	"github.com/tgragnato/magnetico/pkg/persistence"
+	"github.com/tgragnato/magnetico/pkg/util"
 )
 
 type Metadata struct {
