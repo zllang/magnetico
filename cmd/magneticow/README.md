@@ -4,17 +4,17 @@
 **magneticow** is a lightweight web interface to search and to browse the torrents that its counterpart (**magneticod**)
 discovered.
 
-See the list of [alternative front-ends](https://github.com/boramalper/magnetico/wiki/Related-Projects#alternative-front-ends)
+See the list of [alternative front-ends](https://github.com/tgragnato/magnetico/wiki/Related-Projects#alternative-front-ends)
 developed by the community if you need something more advanced or different.
 
 ## Installation
 ### Installing the Pre-Compiled Static Binary
-You can find the latest pre-compiled static binaries on [GitHub](https://github.com/boramalper/magnetico/releases)
+You can find the latest pre-compiled static binaries on [GitHub](https://github.com/tgragnato/magnetico/releases)
 for versions from v0.7.0 onwards. 
 
 ### Installing the Docker Image
 Docker images are provided on [Docker Hub](https://hub.docker.com/u/boramalper) at
-the repositories `boramalper/magneticod` and `boramalper/magneticow`.
+the repositories `tgragnato/magneticod` and `tgragnato/magneticow`.
 
 ## Setup
 ### Configuration
@@ -83,7 +83,7 @@ hence run:
   docker run -it --rm \
     -v ~/.local/share/magneticod:/root/.local/share/magneticod/ \
     -v ~/.config/magneticow/configuration.toml:/root/.config/magneticow/configuration.toml \
-    boramalper/magneticow
+    tgragnato/magneticow
   ```
   
 Using Docker, the default username & password is `magnetico` and `magnetico`.
@@ -128,4 +128,4 @@ Using Docker, the default username & password is `magnetico` and `magnetico`.
 
 **magneticow** offers a REST-ful HTTP API that is capable of everything the web interface can do. 
 
-See the [API documentation on Swaggerhub](https://app.swaggerhub.com/apis/boramalper/magneticow-api/v0.1).
+See the [API documentation on Swaggerhub](https://app.swaggerhub.com/apis/tgragnato/magneticow-api/v0.1).
