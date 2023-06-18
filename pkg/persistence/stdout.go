@@ -3,10 +3,9 @@ package persistence
 import (
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"net/url"
 	"os"
-
-	"github.com/pkg/errors"
 )
 
 func makeStdoutDatabase(_ *url.URL) (Database, error) {
@@ -39,7 +38,7 @@ func (s *stdout) AddNewTorrent(infoHash []byte, name string, files []File) error
 		Files:    files,
 	})
 	if err != nil {
-		return errors.Wrap(err, "DB engine stdout encode error")
+		return errors.New("DB engine stdout encode error " + err.Error())
 	}
 
 	return nil

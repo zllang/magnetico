@@ -7,14 +7,12 @@ package mainline
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"net"
 
-	"github.com/pkg/errors"
-
 	"regexp"
 
-	"github.com/anacrolix/missinggo/iter"
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/willf/bloom"
 )
@@ -174,7 +172,7 @@ func (cp *CompactPeer) UnmarshalBencode(b []byte) (err error) {
 func UnmarshalCompactPeers(b []byte) (ret []CompactPeer, err error) {
 	num := len(b) / 6
 	ret = make([]CompactPeer, num)
-	for i := range iter.N(num) {
+	for i := range make([]struct{}, num) {
 		off := i * 6
 		err = ret[i].UnmarshalBinary(b[off : off+6])
 		if err != nil {
@@ -203,7 +201,7 @@ func UnmarshalCompactNodeInfos(b []byte) (ret []CompactNodeInfo, err error) {
 
 	num := len(b) / 26
 	ret = make([]CompactNodeInfo, num)
-	for i := range iter.N(num) {
+	for i := range make([]struct{}, num) {
 		off := i * 26
 		ret[i].ID = make([]byte, 20)
 		err = ret[i].UnmarshalBinary(b[off : off+26])
@@ -266,10 +264,10 @@ func (e *Error) UnmarshalBencode(b []byte) (err error) {
 
 	matches := result[0][1:]
 	if _, err := fmt.Sscanf(string(matches[0]), "%d", &code); err != nil {
-		return errors.Wrap(err, "could not parse error code")
+		return errors.New("could not parse error code " + err.Error())
 	}
 	if _, err := fmt.Sscanf(string(matches[1]), "%d", &msgLen); err != nil {
-		return errors.Wrap(err, "could not parse error msg length")
+		return errors.New("could not parse error msg length " + err.Error())
 	}
 
 	if len(matches[2]) != msgLen {

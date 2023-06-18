@@ -4,27 +4,26 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"path"
 	"regexp"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
-
-	"github.com/pkg/errors"
 
 	"github.com/Wessie/appdirs"
 	"github.com/dustin/go-humanize"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/jessevdk/go-flags"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/tgragnato/magnetico/pkg/persistence"
@@ -45,40 +44,13 @@ var opts struct {
 	CredentialsRWMutex sync.RWMutex
 	// CredentialsPath is nil when no-auth is supplied.
 	CredentialsPath string
-	Verbosity       int
 }
 
 func main() {
-	loggerLevel := zap.NewAtomicLevel()
-	// Logging levels: ("debug", "info", "warn", "error", "dpanic", "panic", and "fatal").
-	logger := zap.New(zapcore.NewCore(
-		zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig()),
-		zapcore.Lock(os.Stderr),
-		loggerLevel,
-	))
-	defer logger.Sync()
-	zap.ReplaceGlobals(logger)
-
-	zap.L().Info("magneticow v0.12.0 has been started.")
-	zap.L().Info("Copyright (C) 2017-2020  Mert Bora ALPER <bora@boramalper.org>.")
-	zap.L().Info("Dedicated to Cemile Binay, in whose hands I thrived.")
-
 	if err := parseFlags(); err != nil {
-		zap.S().Errorf("error while parsing flags: %s", err.Error())
+		log.Fatalf("Error while parsing flags: %v", err)
 		return
 	}
-
-	switch opts.Verbosity {
-	case 0:
-		loggerLevel.SetLevel(zap.WarnLevel)
-	case 1:
-		loggerLevel.SetLevel(zap.InfoLevel)
-	default: // Default: i.e. in case of 2 or more.
-		// TODO: print the caller (function)'s name and line number!
-		loggerLevel.SetLevel(zap.DebugLevel)
-	}
-
-	zap.ReplaceGlobals(logger)
 
 	// Reload credentials when you receive SIGHUP
 	sighupChan := make(chan os.Signal, 1)
@@ -87,21 +59,21 @@ func main() {
 		for range sighupChan {
 			opts.CredentialsRWMutex.Lock()
 			if opts.Credentials == nil {
-				zap.L().Warn("Ignoring SIGHUP since `no-auth` was supplied")
+				log.Println("Ignoring SIGHUP since `no-auth` was supplied")
 				continue
 			}
 
 			opts.Credentials = make(map[string][]byte) // Clear opts.Credentials
 			opts.CredentialsRWMutex.Unlock()
 			if err := loadCred(opts.CredentialsPath); err != nil { // Reload credentials
-				zap.L().Warn("couldn't load credentials", zap.Error(err))
+				log.Printf("couldn't load credentials %v", err)
 			}
 		}
 	}()
 
 	apiReadmeHandler, err := NewApiReadmeHandler()
 	if err != nil {
-		zap.L().Fatal("Could not initialise readme handler", zap.Error(err))
+		log.Fatalf("Could not initialise readme handler %v", err)
 	}
 	defer apiReadmeHandler.Close()
 
@@ -176,18 +148,18 @@ func main() {
 	templates["feed"] = template.Must(template.New("feed").Funcs(templateFunctions).Parse(string(mustAsset("templates/feed.xml"))))
 	templates["homepage"] = template.Must(template.New("homepage").Funcs(templateFunctions).Parse(string(mustAsset("templates/homepage.html"))))
 
-	database, err = persistence.MakeDatabase(opts.Database, logger)
+	database, err = persistence.MakeDatabase(opts.Database)
 	if err != nil {
-		zap.L().Fatal("could not access to database", zap.Error(err))
+		log.Fatalf("could not access to database %v", err)
 	}
 
 	decoder.IgnoreUnknownKeys(false)
 	decoder.ZeroEmpty(true)
 
-	zap.S().Infof("magneticow is ready to serve on %s!", opts.Addr)
+	log.Printf("magneticow is ready to serve on %s!", opts.Addr)
 	err = http.ListenAndServe(opts.Addr, router)
 	if err != nil {
-		zap.L().Error("ListenAndServe error", zap.Error(err))
+		log.Printf("ListenAndServe error %v", err)
 	}
 }
 
@@ -200,8 +172,7 @@ func respondError(w http.ResponseWriter, statusCode int, format string, a ...int
 func mustAsset(name string) []byte {
 	data, err := Asset(name)
 	if err != nil {
-		zap.L().Panic("Could NOT access the requested resource! THIS IS A BUG, PLEASE REPORT",
-			zap.String("name", name), zap.Error(err))
+		log.Panicf("Could NOT access the requested resource! THIS IS A BUG, PLEASE REPORT. %v", err)
 	}
 	return data
 }
@@ -212,8 +183,6 @@ func parseFlags() error {
 		Database string `short:"d" long:"database"    description:"URL of the (magneticod) database"`
 		Cred     string `short:"c" long:"credentials" description:"Path to the credentials file"`
 		NoAuth   bool   `          long:"no-auth"     description:"Disables authorisation"`
-
-		Verbose []bool `short:"v" long:"verbose" description:"Increases verbosity."`
 	}
 
 	if _, err := flags.Parse(&cmdFlags); err != nil {
@@ -254,8 +223,6 @@ func parseFlags() error {
 		}
 	}
 
-	opts.Verbosity = len(cmdFlags.Verbose)
-
 	return nil
 }
 
@@ -275,7 +242,7 @@ func loadCred(cred string) error {
 			if err == io.EOF {
 				break
 			}
-			return errors.Wrapf(err, "while reading line %d", lineno)
+			return errors.New("Error while reading line " + strconv.Itoa(lineno) + " " + err.Error())
 		}
 
 		line = line[:len(line)-1] // strip '\n'

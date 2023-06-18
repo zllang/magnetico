@@ -3,13 +3,12 @@ package persistence
 import (
 	"encoding/hex"
 	"encoding/json"
-	"go.uber.org/zap"
+	"errors"
 	"net/url"
 	"strings"
 	"time"
 
 	"github.com/iwanbk/gobeanstalk"
-	"github.com/pkg/errors"
 )
 
 func makeBeanstalkDatabase(url_ *url.URL) (Database, error) {
@@ -18,22 +17,15 @@ func makeBeanstalkDatabase(url_ *url.URL) (Database, error) {
 	var err error
 	s.bsQueue, err = gobeanstalk.Dial(url_.Hostname() + ":" + url_.Port())
 	if err != nil {
-		return nil, errors.Wrap(err, "Beanstalkd connection error")
+		return nil, errors.New("Beanstalkd connection error " + err.Error())
 	}
 
 	tubeName := strings.TrimPrefix(url_.Path, "/")
 
 	err = s.bsQueue.Use(tubeName)
 	if err != nil {
-		return nil, errors.Wrap(err, "Beanstalkd tube set error")
+		return nil, errors.New("Beanstalkd tube set error " + err.Error())
 	}
-
-	zap.L().Info(
-		"Beanstalkd connection created",
-		zap.String("host", url_.Hostname()),
-		zap.String("port", url_.Port()),
-		zap.String("tube", tubeName),
-	)
 
 	return s, nil
 }
@@ -60,16 +52,13 @@ func (s *beanstalkd) AddNewTorrent(infoHash []byte, name string, files []File) e
 	})
 
 	if err != nil {
-		return errors.Wrap(err, "DB engine beanstalkd encode error")
+		return errors.New("DB engine beanstalkd encode error " + err.Error())
 	}
 
-	jobId, err := s.bsQueue.Put(payloadJson, 0, 0, 30*time.Second)
-
+	_, err = s.bsQueue.Put(payloadJson, 0, 0, 30*time.Second)
 	if err != nil {
-		return errors.Wrap(err, "DB engine beanstalkd Put() error")
+		return errors.New("DB engine beanstalkd Put() error " + err.Error())
 	}
-
-	zap.L().Debug("New item put into the queue", zap.Uint64("job_id", jobId))
 
 	return nil
 }

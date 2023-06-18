@@ -2,16 +2,17 @@ package mainline
 
 import (
 	"bytes"
-	"github.com/anacrolix/torrent/bencode"
-	sockaddr "github.com/libp2p/go-sockaddr/net"
-	"go.uber.org/zap"
-	"golang.org/x/sys/unix"
+	"log"
 	"net"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/anacrolix/torrent/bencode"
+	sockaddr "github.com/libp2p/go-sockaddr/net"
+	"golang.org/x/sys/unix"
 )
 
 var (
@@ -59,10 +60,10 @@ func NewTransport(laddr string, onMessage func(*Message, *net.UDPAddr), onConges
 	var err error
 	t.laddr, err = net.ResolveUDPAddr("udp", laddr)
 	if err != nil {
-		zap.L().Panic("Could not resolve the UDP address for the trawler!", zap.Error(err))
+		log.Panicf("Could not resolve the UDP address for the trawler! %v", err)
 	}
 	if t.laddr.IP.To4() == nil {
-		zap.L().Panic("IP address is not IPv4!")
+		log.Panicln("IP address is not IPv4!")
 	}
 
 	t.stats = &transportStats{
@@ -72,7 +73,7 @@ func NewTransport(laddr string, onMessage func(*Message, *net.UDPAddr), onConges
 	return t
 }
 
-//Sets t throttle rate at runtime
+// Sets t throttle rate at runtime
 func (t *Transport) SetThrottle(rate int) {
 	t.throttlingRate = rate
 }
@@ -87,21 +88,21 @@ func (t *Transport) Start() {
 	// end up in a debugging horror.
 	//                                                                   Here ends my justification.
 	if t.started {
-		zap.L().Panic("Attempting to Start() a mainline/Transport that has been already started! (Programmer error.)")
+		log.Panicln("Attempting to Start() a mainline/Transport that has been already started! (Programmer error.)")
 	}
 	t.started = true
 
 	var err error
 	t.fd, err = unix.Socket(unix.SOCK_DGRAM, unix.AF_INET, 0)
 	if err != nil {
-		zap.L().Fatal("Could NOT create a UDP socket!", zap.Error(err))
+		log.Fatalf("Could NOT create a UDP socket! %v", err)
 	}
 
 	var ip [4]byte
 	copy(ip[:], t.laddr.IP.To4())
 	err = unix.Bind(t.fd, &unix.SockaddrInet4{Addr: ip, Port: t.laddr.Port})
 	if err != nil {
-		zap.L().Fatal("Could NOT bind the socket!", zap.Error(err))
+		log.Fatalf("Could NOT bind the socket! %v", err)
 	}
 
 	go t.printStats()
@@ -118,7 +119,7 @@ func (t *Transport) readMessages() {
 	for {
 		n, fromSA, err := unix.Recvfrom(t.fd, t.buffer, 0)
 		if err == unix.EPERM || err == unix.ENOBUFS { // todo: are these errors possible for recvfrom?
-			zap.L().Warn("READ CONGESTION!", zap.Error(err))
+			log.Printf("READ CONGESTION! %v", err)
 			t.onCongestion()
 		} else if err != nil {
 			// Socket is probably closed
@@ -134,7 +135,7 @@ func (t *Transport) readMessages() {
 
 		from := sockaddr.SockaddrToUDPAddr(fromSA)
 		if from == nil {
-			zap.L().Panic("dht mainline transport SockaddrToUDPAddr: nil")
+			log.Panicln("dht mainline transport SockaddrToUDPAddr: nil")
 		}
 
 		var msg Message
@@ -151,7 +152,7 @@ func (t *Transport) readMessages() {
 	}
 }
 
-//Manages throttling for transport. To be called as a routine at Start time. Should never return.
+// Manages throttling for transport. To be called as a routine at Start time. Should never return.
 func (t *Transport) Throttle() {
 	if t.throttlingRate > 0 {
 		resetChannel := make(chan struct{})
@@ -181,8 +182,6 @@ func (t *Transport) Throttle() {
 			}
 
 			<-resetRequest
-			return
-
 		}
 
 		go dealer(resetChannel)
@@ -200,7 +199,7 @@ func (t *Transport) Throttle() {
 	}
 }
 
-//statistics
+// statistics
 type transportStats struct {
 	sync.RWMutex
 	sentPorts map[string]int
@@ -231,8 +230,6 @@ func (s statPortCounts) Swap(i, j int) {
 func (s statPortCounts) Less(i, j int) bool {
 	return s[i].portCount > s[j].portCount
 }
-
-var totalSend int
 
 func (t *Transport) printStats() {
 	for {
@@ -271,12 +268,6 @@ func (t *Transport) printStats() {
 		readRateBuffer.WriteString(strconv.FormatFloat(float64(currentTotalRead)/StatsPrintClock.Seconds(), 'f', -1, 64))
 		readRateBuffer.WriteString(" msg/s")
 
-		zap.L().Info("Transport stats for socket "+strconv.Itoa(t.fd)+" (on "+StatsPrintClock.String()+"):",
-			zap.String("ports", mostUsedPortsBuffer.String()),
-			zap.String("send rate", sendRateBuffer.String()),
-			zap.String("read rate", readRateBuffer.String()),
-		)
-
 		//finally, reset stats
 		t.stats.Reset()
 	}
@@ -288,12 +279,10 @@ func (t *Transport) WriteMessages(msg *Message, addr *net.UDPAddr) {
 
 	data, err := bencode.Marshal(msg)
 	if err != nil {
-		zap.L().Panic("Could NOT marshal an outgoing message! (Programmer error.)")
+		log.Panicln("Could NOT marshal an outgoing message! (Programmer error.)")
 	}
 	addrSA := sockaddr.NetAddrToSockaddr(addr)
 	if addrSA == nil {
-		zap.L().Debug("Wrong net address for the remote peer!",
-			zap.String("addr", addr.String()))
 		return
 	}
 	t.stats.Lock()
@@ -322,11 +311,11 @@ func (t *Transport) WriteMessages(msg *Message, addr *net.UDPAddr) {
 		 *
 		 * Source: https://docs.python.org/3/library/asyncio-protocol.html#flow-control-callbacks
 		 */
-		zap.L().Warn("WRITE CONGESTION!", zap.Error(err))
+		log.Printf("WRITE CONGESTION! %v", err)
 		if t.onCongestion != nil {
 			t.onCongestion()
 		}
 	} else if err != nil {
-		zap.L().Warn("Could NOT write an UDP packet!", zap.Error(err))
+		log.Printf("Could NOT write an UDP packet! %v", err)
 	}
 }

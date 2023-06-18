@@ -2,16 +2,15 @@ package persistence
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
+	"log"
 	"net/url"
 	"time"
 	"unicode/utf8"
 
 	_ "github.com/jackc/pgx/v4"
 	_ "github.com/jackc/pgx/v4/stdlib"
-
-	"github.com/pkg/errors"
-	"go.uber.org/zap"
 )
 
 type postgresDatabase struct {
@@ -35,14 +34,14 @@ func makePostgresDatabase(url_ *url.URL) (Database, error) {
 	var err error
 	db.conn, err = sql.Open("pgx", url_.String())
 	if err != nil {
-		return nil, errors.Wrap(err, "sql.Open")
+		return nil, errors.New("sql.Open " + err.Error())
 	}
 
 	// > Open may just validate its arguments without creating a connection to the database. To
 	// > verify that the data source Name is valid, call Ping.
 	// https://golang.org/pkg/database/sql/#Open
 	if err = db.conn.Ping(); err != nil {
-		return nil, errors.Wrap(err, "sql.DB.Ping")
+		return nil, errors.New("sql.DB.Ping " + err.Error())
 	}
 
 	// https://github.com/mattn/go-sqlite3/issues/618
@@ -51,7 +50,7 @@ func makePostgresDatabase(url_ *url.URL) (Database, error) {
 	db.conn.SetMaxIdleConns(3)
 
 	if err := db.setupDatabase(); err != nil {
-		return nil, errors.Wrap(err, "setupDatabase")
+		return nil, errors.New("setupDatabase " + err.Error())
 	}
 
 	return db, nil
@@ -78,18 +77,13 @@ func (db *postgresDatabase) DoesTorrentExist(infoHash []byte) (bool, error) {
 
 func (db *postgresDatabase) AddNewTorrent(infoHash []byte, name string, files []File) error {
 	if !utf8.ValidString(name) {
-		zap.L().Warn(
-			"Ignoring a torrent whose name is not UTF-8 compliant.",
-			zap.ByteString("infoHash", infoHash),
-			zap.Binary("name", []byte(name)),
-		)
-
+		log.Printf("Ignoring a torrent whose name is not UTF-8 compliant. infoHash: %s", infoHash)
 		return nil
 	}
 
 	tx, err := db.conn.Begin()
 	if err != nil {
-		return errors.Wrap(err, "conn.Begin")
+		return errors.New("conn.Begin " + err.Error())
 	}
 	// If everything goes as planned and no error occurs, we will commit the transaction before
 	// returning from the function so the tx.Rollback() call will fail, trying to rollback a
@@ -104,7 +98,6 @@ func (db *postgresDatabase) AddNewTorrent(infoHash []byte, name string, files []
 
 	// This is a workaround for a bug: the database will not accept total_size to be zero.
 	if totalSize == 0 {
-		zap.L().Debug("Ignoring a torrent whose total size is zero.")
 		return nil
 	}
 
@@ -124,15 +117,12 @@ func (db *postgresDatabase) AddNewTorrent(infoHash []byte, name string, files []
 		RETURNING id;
 	`, infoHash, name, totalSize, time.Now().Unix()).Scan(&lastInsertId)
 	if err != nil {
-		return errors.Wrap(err, "tx.QueryRow (INSERT INTO torrents)")
+		return errors.New("tx.QueryRow (INSERT INTO torrents) " + err.Error())
 	}
 
 	for _, file := range files {
 		if !utf8.ValidString(file.Path) {
-			zap.L().Warn(
-				"Ignoring a file whose path is not UTF-8 compliant.",
-				zap.Binary("path", []byte(file.Path)),
-			)
+			log.Printf("Ignoring a file whose path is not UTF-8 compliant. %s", file.Path)
 
 			// Returning nil so deferred tx.Rollback() will be called and transaction will be canceled.
 			return nil
@@ -142,13 +132,13 @@ func (db *postgresDatabase) AddNewTorrent(infoHash []byte, name string, files []
 			lastInsertId, file.Size, file.Path,
 		)
 		if err != nil {
-			return errors.Wrap(err, "tx.Exec (INSERT INTO files)")
+			return errors.New("tx.Exec (INSERT INTO files) " + err.Error())
 		}
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return errors.Wrap(err, "tx.Commit")
+		return errors.New("tx.Commit " + err.Error())
 	}
 
 	return nil
@@ -261,7 +251,7 @@ func (db *postgresDatabase) GetStatistics(from string, n uint) (*Statistics, err
 func (db *postgresDatabase) setupDatabase() error {
 	tx, err := db.conn.Begin()
 	if err != nil {
-		return errors.Wrap(err, "sql.DB.Begin")
+		return errors.New("sql.DB.Begin " + err.Error())
 	}
 
 	defer tx.Rollback()
@@ -328,13 +318,13 @@ func (db *postgresDatabase) setupDatabase() error {
 		INSERT INTO migrations (schema_version) VALUES (0) ON CONFLICT DO NOTHING;
 	`)
 	if err != nil {
-		return errors.Wrap(err, "sql.Tx.Exec (v0)")
+		return errors.New("sql.Tx.Exec (v0) " + err.Error())
 	}
 
 	// Get current schema version
 	rows, err = tx.Query("SELECT MAX(schema_version) FROM migrations;")
 	if err != nil {
-		return errors.Wrap(err, "sql.Tx.Query (SELECT MAX(version) FROM migrations)")
+		return errors.New("sql.Tx.Query (SELECT MAX(version) FROM migrations) " + err.Error())
 	}
 	defer db.closeRows(rows)
 
@@ -343,7 +333,7 @@ func (db *postgresDatabase) setupDatabase() error {
 		return fmt.Errorf("sql.Rows.Next (SELECT MAX(version) FROM migrations): Query did not return any rows")
 	}
 	if err = rows.Scan(&schemaVersion); err != nil {
-		return errors.Wrap(err, "sql.Rows.Scan (MAX(version))")
+		return errors.New("sql.Rows.Scan (MAX(version)) " + err.Error())
 	}
 	// If next line is removed we're getting error on sql.Tx.Commit: unexpected command tag SELECT
 	// https://stackoverflow.com/questions/36295883/golang-postgres-commit-unknown-command-error/36866993#36866993
@@ -352,7 +342,7 @@ func (db *postgresDatabase) setupDatabase() error {
 	// Uncomment for future migrations:
 	//switch schemaVersion {
 	//case 0: // FROZEN.
-	//	zap.L().Warn("Updating (fake) database schema from 0 to 1...")
+	//	log.Println("Updating (fake) database schema from 0 to 1...")
 	//	_, err = tx.Exec(`INSERT INTO migrations (schema_version) VALUES (1);`)
 	//	if err != nil {
 	//		return errors.Wrap(err, "sql.Tx.Exec (v0 -> v1)")
@@ -361,7 +351,7 @@ func (db *postgresDatabase) setupDatabase() error {
 	//}
 
 	if err = tx.Commit(); err != nil {
-		return errors.Wrap(err, "sql.Tx.Commit")
+		return errors.New("sql.Tx.Commit " + err.Error())
 	}
 
 	return nil
@@ -369,6 +359,6 @@ func (db *postgresDatabase) setupDatabase() error {
 
 func (db *postgresDatabase) closeRows(rows *sql.Rows) {
 	if err := rows.Close(); err != nil {
-		zap.L().Error("could not close row", zap.Error(err))
+		log.Printf("could not close row %v", err)
 	}
 }

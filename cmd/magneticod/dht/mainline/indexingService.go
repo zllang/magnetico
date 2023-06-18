@@ -2,12 +2,10 @@ package mainline
 
 import (
 	"crypto/rand"
+	"log"
 	"net"
-	"strconv"
 	"sync"
 	"time"
-
-	"go.uber.org/zap"
 )
 
 var (
@@ -74,17 +72,12 @@ func NewIndexingService(laddr string, interval time.Duration, maxNeighbors uint,
 
 func (is *IndexingService) Start() {
 	if is.started {
-		zap.L().Panic("Attempting to Start() a mainline/IndexingService that has been already started! (Programmer error.)")
+		log.Panicln("Attempting to Start() a mainline/IndexingService that has been already started! (Programmer error.)")
 	}
 	is.started = true
 
 	is.protocol.Start()
 	go is.index()
-
-	zap.L().Info("Indexing Service started!")
-	if DefaultThrottleRate > 0 {
-		zap.L().Info("Throttle set to " + strconv.Itoa(DefaultThrottleRate) + " msg/s")
-	}
 }
 
 func (is *IndexingService) Terminate() {
@@ -99,8 +92,6 @@ func (is *IndexingService) index() {
 		if routingTableLen == 0 {
 			is.bootstrap()
 		} else {
-			zap.L().Info("Latest status:", zap.Int("n", routingTableLen),
-				zap.Uint("maxNeighbors", is.maxNeighbors))
 			//TODO
 			is.findNeighbors()
 			is.routingTableMutex.Lock()
@@ -117,18 +108,16 @@ func (is *IndexingService) bootstrap() {
 		"dht.libtorrent.org:25401",
 	}
 
-	zap.L().Info("Bootstrapping as routing table is empty...")
 	for _, node := range bootstrappingNodes {
 		target := make([]byte, 20)
 		_, err := rand.Read(target)
 		if err != nil {
-			zap.L().Panic("Could NOT generate random bytes during bootstrapping!")
+			log.Panicln("Could NOT generate random bytes during bootstrapping!")
 		}
 
 		addr, err := net.ResolveUDPAddr("udp", node)
 		if err != nil {
-			zap.L().Error("Could NOT resolve (UDP) address of the bootstrapping node!",
-				zap.String("node", node))
+			log.Printf("Could NOT resolve (UDP) address of the bootstrapping node! %s", node)
 			continue
 		}
 
@@ -154,7 +143,7 @@ func (is *IndexingService) findNeighbors() {
 	for _, addr := range addressesToSend {
 		_, err := rand.Read(target)
 		if err != nil {
-			zap.L().Panic("Could NOT generate random bytes during bootstrapping!")
+			log.Panicln("Could NOT generate random bytes during bootstrapping!")
 		}
 
 		is.protocol.SendMessage(
@@ -181,7 +170,7 @@ func (is *IndexingService) onFindNodeResponse(response *Message, addr *net.UDPAd
 		target := make([]byte, 20)
 		_, err := rand.Read(target)
 		if err != nil {
-			zap.L().Panic("Could NOT generate random bytes!")
+			log.Panicln("Could NOT generate random bytes!")
 		}
 		is.protocol.SendMessage(
 			NewSampleInfohashesQuery(is.nodeID, []byte("aa"), target),
@@ -265,7 +254,7 @@ func (is *IndexingService) onSampleInfohashesResponse(msg *Message, addr *net.UD
 			target := make([]byte, 20)
 			_, err := rand.Read(target)
 			if err != nil {
-				zap.L().Panic("Could NOT generate random bytes!")
+				log.Panicln("Could NOT generate random bytes!")
 			}
 			is.protocol.SendMessage(
 				NewSampleInfohashesQuery(is.nodeID, []byte("aa"), target),

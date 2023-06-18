@@ -3,11 +3,9 @@ package persistence
 import (
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/pkg/errors"
 	"net/url"
-
-	"go.uber.org/zap"
 )
 
 var NotImplementedError = errors.New("Function not implemented")
@@ -109,14 +107,10 @@ func (tm *TorrentMetadata) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func MakeDatabase(rawURL string, logger *zap.Logger) (Database, error) {
-	if logger != nil {
-		zap.ReplaceGlobals(logger)
-	}
-
+func MakeDatabase(rawURL string) (Database, error) {
 	url_, err := url.Parse(rawURL)
 	if err != nil {
-		return nil, errors.Wrap(err, "url.Parse")
+		return nil, errors.New("url.Parse " + err.Error())
 	}
 
 	switch url_.Scheme {

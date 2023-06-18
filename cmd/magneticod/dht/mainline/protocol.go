@@ -3,6 +3,7 @@ package mainline
 import (
 	"crypto/rand"
 	"crypto/sha1"
+	"log"
 	"net"
 	"sort"
 	"strconv"
@@ -10,8 +11,6 @@ import (
 	"time"
 
 	"github.com/tgragnato/magnetico/pkg/util"
-
-	"go.uber.org/zap"
 )
 
 type Protocol struct {
@@ -51,7 +50,7 @@ func NewProtocol(laddr string, eventHandlers ProtocolEventHandlers) (p *Protocol
 	p.currentTokenSecret, p.previousTokenSecret = make([]byte, 20), make([]byte, 20)
 	_, err := rand.Read(p.currentTokenSecret)
 	if err != nil {
-		zap.L().Fatal("Could NOT generate random bytes for token secret!", zap.Error(err))
+		log.Fatalln("Could NOT generate random bytes for token secret!")
 	}
 	copy(p.previousTokenSecret, p.currentTokenSecret)
 
@@ -60,7 +59,7 @@ func NewProtocol(laddr string, eventHandlers ProtocolEventHandlers) (p *Protocol
 
 func (p *Protocol) Start() {
 	if p.started {
-		zap.L().Panic("Attempting to Start() a mainline/Protocol that has been already started! (Programmer error.)")
+		log.Panicln("Attempting to Start() a mainline/Protocol that has been already started! (Programmer error.)")
 	}
 	p.started = true
 
@@ -71,7 +70,7 @@ func (p *Protocol) Start() {
 
 func (p *Protocol) Terminate() {
 	if !p.started {
-		zap.L().Panic("Attempted to Terminate() a mainline/Protocol that has not been Start()ed! (Programmer error.)")
+		log.Panicln("Attempted to Terminate() a mainline/Protocol that has not been Start()ed! (Programmer error.)")
 	}
 
 	p.transport.Terminate()
@@ -173,10 +172,6 @@ func (p *Protocol) printStats() {
 		orderedMessages.CalculatePercentagesOverTotal(totalMessages)
 		orderedMessages.Sort()
 
-		zap.L().Info("Protocol stats (on "+StatsPrintClock.String()+"):",
-			zap.String("message type", orderedMessages.String()),
-		)
-
 		p.stats.Reset()
 	}
 }
@@ -189,7 +184,6 @@ func (p *Protocol) onMessage(msg *Message, addr *net.UDPAddr) {
 		switch msg.Q {
 		case "ping":
 			if !validatePingQueryMessage(msg) {
-				// zap.L().Debug("An invalid ping query received!")
 				return
 			}
 			// Check whether there is a registered event handler for the ping queries, before
@@ -200,7 +194,6 @@ func (p *Protocol) onMessage(msg *Message, addr *net.UDPAddr) {
 
 		case "find_node":
 			if !validateFindNodeQueryMessage(msg) {
-				// zap.L().Debug("An invalid find_node query received!")
 				return
 			}
 			if p.eventHandlers.OnFindNodeQuery != nil {
@@ -209,7 +202,6 @@ func (p *Protocol) onMessage(msg *Message, addr *net.UDPAddr) {
 
 		case "get_peers":
 			if !validateGetPeersQueryMessage(msg) {
-				// zap.L().Debug("An invalid get_peers query received!")
 				return
 			}
 			if p.eventHandlers.OnGetPeersQuery != nil {
@@ -218,7 +210,6 @@ func (p *Protocol) onMessage(msg *Message, addr *net.UDPAddr) {
 
 		case "announce_peer":
 			if !validateAnnouncePeerQueryMessage(msg) {
-				// zap.L().Debug("An invalid announce_peer query received!")
 				return
 			}
 			if p.eventHandlers.OnAnnouncePeerQuery != nil {
@@ -230,7 +221,6 @@ func (p *Protocol) onMessage(msg *Message, addr *net.UDPAddr) {
 
 		case "sample_infohashes": // Added by BEP 51
 			if !validateSampleInfohashesQueryMessage(msg) {
-				// zap.L().Debug("An invalid sample_infohashes query received!")
 				return
 			}
 			if p.eventHandlers.OnSampleInfohashesQuery != nil {
@@ -238,7 +228,6 @@ func (p *Protocol) onMessage(msg *Message, addr *net.UDPAddr) {
 			}
 
 		default:
-			// zap.L().Debug("A KRPC query of an unknown method received!", zap.String("method", msg.Q))
 			return
 		}
 	case "r":
@@ -258,7 +247,6 @@ func (p *Protocol) onMessage(msg *Message, addr *net.UDPAddr) {
 		if len(msg.R.Samples) != 0 { // The message should be a sample_infohashes response.
 			temporaryQ = "sample_infohashes"
 			if !validateSampleInfohashesResponseMessage(msg) {
-				// zap.L().Debug("An invalid sample_infohashes response received!")
 				return
 			}
 			if p.eventHandlers.OnSampleInfohashesResponse != nil {
@@ -267,7 +255,6 @@ func (p *Protocol) onMessage(msg *Message, addr *net.UDPAddr) {
 		} else if len(msg.R.Token) != 0 { // The message should be a get_peers response.
 			temporaryQ = "get_peers"
 			if !validateGetPeersResponseMessage(msg) {
-				// zap.L().Debug("An invalid get_peers response received!")
 				return
 			}
 			if p.eventHandlers.OnGetPeersResponse != nil {
@@ -276,7 +263,6 @@ func (p *Protocol) onMessage(msg *Message, addr *net.UDPAddr) {
 		} else if len(msg.R.Nodes) != 0 { // The message should be a find_node response.
 			temporaryQ = "find_node"
 			if !validateFindNodeResponseMessage(msg) {
-				// zap.L().Debug("An invalid find_node response received!")
 				return
 			}
 			if p.eventHandlers.OnFindNodeResponse != nil {
@@ -285,24 +271,13 @@ func (p *Protocol) onMessage(msg *Message, addr *net.UDPAddr) {
 		} else { // The message should be a ping or an announce_peer response.
 			temporaryQ = "ping_or_announce"
 			if !validatePingORannouncePeerResponseMessage(msg) {
-				// zap.L().Debug("An invalid ping OR announce_peer response received!")
 				return
 			}
 			if p.eventHandlers.OnPingORAnnouncePeerResponse != nil {
 				p.eventHandlers.OnPingORAnnouncePeerResponse(msg, addr)
 			}
 		}
-	case "e":
-		// Ignore the following:
-		//   - 202  Server Error
-		//   - 204  Method Unknown / Unknown query type
-		if msg.E.Code != 202 && msg.E.Code != 204 {
-			zap.L().Sugar().Debugf("Protocol error received: `%s` (%d)", msg.E.Message, msg.E.Code)
-		}
 	default:
-		/* zap.L().Debug("A KRPC message of an unknown type received!",
-		zap.String("type", msg.Y))
-		*/
 	}
 
 	//let's update stats at the end so that in case of an "r" message the previous switch case can update the temporaryQ field
@@ -418,7 +393,7 @@ func (p *Protocol) updateTokenSecret() {
 		_, err := rand.Read(p.currentTokenSecret)
 		if err != nil {
 			p.tokenLock.Unlock()
-			zap.L().Fatal("Could NOT generate random bytes for token secret!", zap.Error(err))
+			log.Fatalf("Could NOT generate random bytes for token secret! %v", err)
 		}
 		p.tokenLock.Unlock()
 	}

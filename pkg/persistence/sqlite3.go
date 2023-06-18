@@ -3,7 +3,9 @@ package persistence
 import (
 	"bytes"
 	"database/sql"
+	"errors"
 	"fmt"
+	"log"
 	"net/url"
 	"os"
 	"path"
@@ -11,8 +13,6 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/pkg/errors"
-	"go.uber.org/zap"
 )
 
 // Close your rows lest you get "database table is locked" error(s)!
@@ -27,7 +27,7 @@ func makeSqlite3Database(url_ *url.URL) (Database, error) {
 
 	dbDir, _ := path.Split(url_.Path)
 	if err := os.MkdirAll(dbDir, 0755); err != nil {
-		return nil, errors.Wrapf(err, "mkdirAll error for `%s`", dbDir)
+		return nil, errors.New("mkdirAll error for `" + dbDir + "` " + err.Error())
 	}
 
 	var err error
@@ -38,14 +38,14 @@ func makeSqlite3Database(url_ *url.URL) (Database, error) {
 	url_.Opaque = url_.Path
 	db.conn, err = sql.Open("sqlite3", url_.String())
 	if err != nil {
-		return nil, errors.Wrap(err, "sql.Open")
+		return nil, errors.New("sql.Open " + err.Error())
 	}
 
 	// > Open may just validate its arguments without creating a connection to the database. To
 	// > verify that the data source Name is valid, call Ping.
 	// https://golang.org/pkg/database/sql/#Open
 	if err = db.conn.Ping(); err != nil {
-		return nil, errors.Wrap(err, "sql.DB.Ping")
+		return nil, errors.New("sql.DB.Ping " + err.Error())
 	}
 
 	// > After some time we receive "unable to open database file" error while trying to execute a transaction using
@@ -70,7 +70,7 @@ func makeSqlite3Database(url_ *url.URL) (Database, error) {
 	db.conn.SetMaxIdleConns(3)
 
 	if err := db.setupDatabase(); err != nil {
-		return nil, errors.Wrap(err, "setupDatabase")
+		return nil, errors.New("setupDatabase " + err.Error())
 	}
 
 	return db, nil
@@ -100,7 +100,7 @@ func (db *sqlite3Database) DoesTorrentExist(infoHash []byte) (bool, error) {
 func (db *sqlite3Database) AddNewTorrent(infoHash []byte, name string, files []File) error {
 	tx, err := db.conn.Begin()
 	if err != nil {
-		return errors.Wrap(err, "conn.Begin")
+		return errors.New("conn.Begin " + err.Error())
 	}
 	// If everything goes as planned and no error occurs, we will commit the transaction before
 	// returning from the function so the tx.Rollback() call will fail, trying to rollback a
@@ -115,7 +115,6 @@ func (db *sqlite3Database) AddNewTorrent(infoHash []byte, name string, files []F
 
 	// This is a workaround for a bug: the database will not accept total_size to be zero.
 	if totalSize == 0 {
-		zap.L().Debug("Ignoring a torrent whose total size is zero.")
 		return nil
 	}
 
@@ -165,12 +164,12 @@ func (db *sqlite3Database) AddNewTorrent(infoHash []byte, name string, files []F
 		) VALUES (?, ?, ?, ?);
 	`, infoHash, name, totalSize, time.Now().Unix())
 	if err != nil {
-		return errors.Wrap(err, "tx.Exec (INSERT OR REPLACE INTO torrents)")
+		return errors.New("tx.Exec (INSERT OR REPLACE INTO torrents) " + err.Error())
 	}
 
 	var lastInsertId int64
 	if lastInsertId, err = res.LastInsertId(); err != nil {
-		return errors.Wrap(err, "sql.Result.LastInsertId")
+		return errors.New("sql.Result.LastInsertId " + err.Error())
 	}
 
 	// > last_insert_rowid()
@@ -184,8 +183,7 @@ func (db *sqlite3Database) AddNewTorrent(infoHash []byte, name string, files []F
 	// Now, last_insert_rowid() should never return zero (or any negative values really) as we
 	// insert into torrents and handle any errors accordingly right afterwards.
 	if lastInsertId <= 0 {
-		zap.L().Panic("last_insert_rowid() <= 0 (this should have never happened!)",
-			zap.Int64("lastInsertId", lastInsertId))
+		log.Panicf("last_insert_rowid() <= 0 (this should have never happened!). lastInsertId: %d", lastInsertId)
 	}
 
 	for _, file := range files {
@@ -193,13 +191,13 @@ func (db *sqlite3Database) AddNewTorrent(infoHash []byte, name string, files []F
 			lastInsertId, file.Size, file.Path,
 		)
 		if err != nil {
-			return errors.Wrap(err, "tx.Exec (INSERT INTO files)")
+			return errors.New("tx.Exec (INSERT INTO files) " + err.Error())
 		}
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return errors.Wrap(err, "tx.Commit")
+		return errors.New("tx.Commit " + err.Error())
 	}
 
 	return nil
@@ -324,7 +322,7 @@ func (db *sqlite3Database) QueryTorrents(
 	rows, err := db.conn.Query(sqlQuery, queryArgs...)
 	defer closeRows(rows)
 	if err != nil {
-		return nil, errors.Wrap(err, "query error")
+		return nil, errors.New("query error " + err.Error())
 	}
 
 	torrents := make([]TorrentMetadata, 0)
@@ -420,7 +418,7 @@ func (db *sqlite3Database) GetFiles(infoHash []byte) ([]File, error) {
 func (db *sqlite3Database) GetStatistics(from string, n uint) (*Statistics, error) {
 	fromTime, gran, err := ParseISO8601(from)
 	if err != nil {
-		return nil, errors.Wrap(err, "parsing ISO8601 error")
+		return nil, errors.New("parsing ISO8601 error " + err.Error())
 	}
 
 	var toTime time.Time
@@ -504,12 +502,12 @@ func (db *sqlite3Database) setupDatabase() error {
 		PRAGMA encoding='UTF-8';
 	`)
 	if err != nil {
-		return errors.Wrap(err, "sql.DB.Exec (PRAGMAs)")
+		return errors.New("sql.DB.Exec (PRAGMAs) " + err.Error())
 	}
 
 	tx, err := db.conn.Begin()
 	if err != nil {
-		return errors.Wrap(err, "sql.DB.Begin")
+		return errors.New("sql.DB.Begin " + err.Error())
 	}
 	// If everything goes as planned and no error occurs, we will commit the transaction before
 	// returning from the function so the tx.Rollback() call will fail, trying to rollback a
@@ -537,13 +535,13 @@ func (db *sqlite3Database) setupDatabase() error {
 		);
 	`)
 	if err != nil {
-		return errors.Wrap(err, "sql.Tx.Exec (v0)")
+		return errors.New("sql.Tx.Exec (v0) " + err.Error())
 	}
 
 	// Get the user_version:
 	rows, err := tx.Query("PRAGMA user_version;")
 	if err != nil {
-		return errors.Wrap(err, "sql.Tx.Query (user_version)")
+		return errors.New("sql.Tx.Query (user_version) " + err.Error())
 	}
 	defer rows.Close()
 	var userVersion int
@@ -551,7 +549,7 @@ func (db *sqlite3Database) setupDatabase() error {
 		return fmt.Errorf("sql.Rows.Next (user_version): PRAGMA user_version did not return any rows")
 	}
 	if err = rows.Scan(&userVersion); err != nil {
-		return errors.Wrap(err, "sql.Rows.Scan (user_version)")
+		return errors.New("sql.Rows.Scan (user_version) " + err.Error())
 	}
 
 	switch userVersion {
@@ -559,14 +557,14 @@ func (db *sqlite3Database) setupDatabase() error {
 		// Upgrade from user_version 0 to 1
 		// Changes:
 		//   * `info_hash_index` is recreated as UNIQUE.
-		zap.L().Warn("Updating database schema from 0 to 1... (this might take a while)")
+		log.Println("Updating database schema from 0 to 1... (this might take a while)")
 		_, err = tx.Exec(`
 			DROP INDEX IF EXISTS info_hash_index;
 			CREATE UNIQUE INDEX info_hash_index ON torrents	(info_hash);
 			PRAGMA user_version = 1;
 		`)
 		if err != nil {
-			return errors.Wrap(err, "sql.Tx.Exec (v0 -> v1)")
+			return errors.New("sql.Tx.Exec (v0 -> v1) " + err.Error())
 		}
 		fallthrough
 
@@ -578,7 +576,7 @@ func (db *sqlite3Database) setupDatabase() error {
 		//   * Added `is_readme` and `content` columns to the `files` table, and the constraints & the
 		//     the indices they entail.
 		//     * Added unique index `readme_index`  on `files` table.
-		zap.L().Warn("Updating database schema from 1 to 2... (this might take a while)")
+		log.Println("Updating database schema from 1 to 2... (this might take a while)")
 		// We introduce two new columns in `files`: content BLOB, and is_readme INTEGER which we
 		// treat as a bool (NULL for false, and 1 for true; see the CHECK statement).
 		// The reason for the change is that as we introduce the new "readme" feature which
@@ -611,7 +609,7 @@ func (db *sqlite3Database) setupDatabase() error {
 			PRAGMA user_version = 2;
 		`)
 		if err != nil {
-			return errors.Wrap(err, "sql.Tx.Exec (v1 -> v2)")
+			return errors.New("sql.Tx.Exec (v1 -> v2) " + err.Error())
 		}
 		fallthrough
 
@@ -625,7 +623,7 @@ func (db *sqlite3Database) setupDatabase() error {
 		//     * https://sqlite.org/fts3.html
 		//
 		//   * Added `modified_on` column to the `torrents` table.
-		zap.L().Warn("Updating database schema from 2 to 3... (this might take a while)")
+		log.Println("Updating database schema from 2 to 3... (this might take a while)")
 		_, err = tx.Exec(`
 			CREATE VIRTUAL TABLE torrents_idx USING fts5(name, content='torrents', content_rowid='id', tokenize="porter unicode61 separators ' !""#$%&''()*+,-./:;<=>?@[\]^_` + "`" + `{|}~'");
 			
@@ -670,12 +668,12 @@ func (db *sqlite3Database) setupDatabase() error {
 			PRAGMA user_version = 3;
 		`)
 		if err != nil {
-			return errors.Wrap(err, "sql.Tx.Exec (v2 -> v3)")
+			return errors.New("sql.Tx.Exec (v2 -> v3) " + err.Error())
 		}
 	}
 
 	if err = tx.Commit(); err != nil {
-		return errors.Wrap(err, "sql.Tx.Commit")
+		return errors.New("sql.Tx.Commit " + err.Error())
 	}
 
 	return nil
@@ -694,6 +692,6 @@ func executeTemplate(text string, data interface{}, funcs template.FuncMap) stri
 
 func closeRows(rows *sql.Rows) {
 	if err := rows.Close(); err != nil {
-		zap.L().Error("could not close row", zap.Error(err))
+		log.Printf("could not close row %v", err)
 	}
 }

@@ -4,8 +4,6 @@ import (
 	"net"
 	"time"
 
-	"go.uber.org/zap"
-
 	"github.com/tgragnato/magnetico/cmd/magneticod/dht/mainline"
 )
 
@@ -29,22 +27,12 @@ func NewManager(addrs []string, interval time.Duration, maxNeighbors uint) *Mana
 	manager.output = make(chan Result, 20)
 
 	for _, addr := range addrs {
-		service := mainline.NewIndexingService(addr, interval, maxNeighbors, mainline.IndexingServiceEventHandlers{
-			OnResult: manager.onIndexingResult,
-		})
+		service := mainline.NewIndexingService(addr, interval, maxNeighbors, mainline.IndexingServiceEventHandlers{})
 		manager.indexingServices = append(manager.indexingServices, service)
 		service.Start()
 	}
 
 	return manager
-}
-
-func (m *Manager) onIndexingResult(res mainline.IndexingResult) {
-	select {
-	case m.output <- res:
-	default:
-		zap.L().Debug("DHT manager output ch is full, idx result dropped!")
-	}
 }
 
 func (m *Manager) Output() <-chan Result {

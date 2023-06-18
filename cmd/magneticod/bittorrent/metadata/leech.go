@@ -4,17 +4,16 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
+	"log"
 	"math"
 	"net"
 	"time"
 
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/metainfo"
-	"github.com/pkg/errors"
-
-	"go.uber.org/zap"
 
 	"github.com/tgragnato/magnetico/pkg/persistence"
 )
@@ -90,12 +89,12 @@ func (l *Leech) doBtHandshake() error {
 
 	err := l.writeAll(lHandshake)
 	if err != nil {
-		return errors.Wrap(err, "writeAll lHandshake")
+		return errors.New("writeAll lHandshake " + err.Error())
 	}
 
 	rHandshake, err := l.readExactly(68)
 	if err != nil {
-		return errors.Wrap(err, "readExactly rHandshake")
+		return errors.New("readExactly rHandshake " + err.Error())
 	}
 	if !bytes.HasPrefix(rHandshake, []byte("\x13BitTorrent protocol")) {
 		return fmt.Errorf("corrupt BitTorrent handshake received")
@@ -113,23 +112,23 @@ func (l *Leech) doBtHandshake() error {
 func (l *Leech) doExHandshake() error {
 	err := l.writeAll([]byte("\x00\x00\x00\x1a\x14\x00d1:md11:ut_metadatai1eee"))
 	if err != nil {
-		return errors.Wrap(err, "writeAll lHandshake")
+		return errors.New("writeAll lHandshake " + err.Error())
 	}
 
 	rExMessage, err := l.readExMessage()
 	if err != nil {
-		return errors.Wrap(err, "readExMessage")
+		return errors.New("readExMessage " + err.Error())
 	}
 
 	// Extension Handshake has the Extension Message ID = 0x00
 	if rExMessage[1] != 0 {
-		return errors.Wrap(err, "first extension message is not an extension handshake")
+		return errors.New("first extension message is not an extension handshake " + err.Error())
 	}
 
 	rRootDict := new(rootDict)
 	err = bencode.Unmarshal(rExMessage[2:], rRootDict)
 	if err != nil {
-		return errors.Wrap(err, "unmarshal rExMessage")
+		return errors.New("unmarshal rExMessage " + err.Error())
 	}
 
 	if !(0 < rRootDict.MetadataSize && rRootDict.MetadataSize < MAX_METADATA_SIZE) {
@@ -158,7 +157,7 @@ func (l *Leech) requestAllPieces() error {
 			Piece:   piece,
 		})
 		if err != nil { // ASSERT
-			panic(errors.Wrap(err, "marshal extDict"))
+			panic(errors.New("marshal extDict " + err.Error()))
 		}
 
 		err = l.writeAll([]byte(fmt.Sprintf(
@@ -168,7 +167,7 @@ func (l *Leech) requestAllPieces() error {
 			extDictDump,
 		)))
 		if err != nil {
-			return errors.Wrap(err, "writeAll piece request")
+			return errors.New("writeAll piece request " + err.Error())
 		}
 	}
 
@@ -179,7 +178,7 @@ func (l *Leech) requestAllPieces() error {
 func (l *Leech) readMessage() ([]byte, error) {
 	rLengthB, err := l.readExactly(4)
 	if err != nil {
-		return nil, errors.Wrap(err, "readExactly rLengthB")
+		return nil, errors.New("readExactly rLengthB " + err.Error())
 	}
 
 	rLength := uint(binary.BigEndian.Uint32(rLengthB))
@@ -194,7 +193,7 @@ func (l *Leech) readMessage() ([]byte, error) {
 
 	rMessage, err := l.readExactly(rLength)
 	if err != nil {
-		return nil, errors.Wrap(err, "readExactly rMessage")
+		return nil, errors.New("readExactly rMessage " + err.Error())
 	}
 
 	return rMessage, nil
@@ -207,7 +206,7 @@ func (l *Leech) readExMessage() ([]byte, error) {
 	for {
 		rMessage, err := l.readMessage()
 		if err != nil {
-			return nil, errors.Wrap(err, "readMessage")
+			return nil, errors.New("readMessage " + err.Error())
 		}
 
 		// Every extension message has at least 2 bytes.
@@ -230,7 +229,7 @@ func (l *Leech) readUmMessage() ([]byte, error) {
 	for {
 		rExMessage, err := l.readExMessage()
 		if err != nil {
-			return nil, errors.Wrap(err, "readExMessage")
+			return nil, errors.New("readExMessage " + err.Error())
 		}
 
 		if rExMessage[1] == 0x01 {
@@ -244,7 +243,7 @@ func (l *Leech) connect(deadline time.Time) error {
 
 	x, err := net.DialTimeout("tcp4", l.peerAddr.String(), 1*time.Second)
 	if err != nil {
-		return errors.Wrap(err, "dial")
+		return errors.New("dial " + err.Error())
 	}
 	l.conn = x.(*net.TCPConn)
 
@@ -253,25 +252,25 @@ func (l *Leech) connect(deadline time.Time) error {
 	err = l.conn.SetLinger(0)
 	if err != nil {
 		if err := l.conn.Close(); err != nil {
-			zap.L().Panic("couldn't close leech connection!", zap.Error(err))
+			log.Panicf("couldn't close leech connection! %v", err)
 		}
-		return errors.Wrap(err, "SetLinger")
+		return errors.New("SetLinger " + err.Error())
 	}
 
 	err = l.conn.SetNoDelay(true)
 	if err != nil {
 		if err := l.conn.Close(); err != nil {
-			zap.L().Panic("couldn't close leech connection!", zap.Error(err))
+			log.Panicf("couldn't close leech connection! %v", err)
 		}
-		return errors.Wrap(err, "NODELAY")
+		return errors.New("NODELAY " + err.Error())
 	}
 
 	err = l.conn.SetDeadline(deadline)
 	if err != nil {
 		if err := l.conn.Close(); err != nil {
-			zap.L().Panic("couldn't close leech connection!", zap.Error(err))
+			log.Panicf("couldn't close leech connection! %v", err)
 		}
-		return errors.Wrap(err, "SetDeadline")
+		return errors.New("SetDeadline " + err.Error())
 	}
 
 	return nil
@@ -283,7 +282,7 @@ func (l *Leech) closeConn() {
 	}
 
 	if err := l.conn.Close(); err != nil {
-		zap.L().Panic("couldn't close leech connection!", zap.Error(err))
+		log.Panicf("couldn't close leech connection! %v", err)
 		return
 	}
 
@@ -293,33 +292,33 @@ func (l *Leech) closeConn() {
 func (l *Leech) Do(deadline time.Time) {
 	err := l.connect(deadline)
 	if err != nil {
-		l.OnError(errors.Wrap(err, "connect"))
+		l.OnError(errors.New("connect " + err.Error()))
 		return
 	}
 	defer l.closeConn()
 
 	err = l.doBtHandshake()
 	if err != nil {
-		l.OnError(errors.Wrap(err, "doBtHandshake"))
+		l.OnError(errors.New("doBtHandshake " + err.Error()))
 		return
 	}
 
 	err = l.doExHandshake()
 	if err != nil {
-		l.OnError(errors.Wrap(err, "doExHandshake"))
+		l.OnError(errors.New("doExHandshake " + err.Error()))
 		return
 	}
 
 	err = l.requestAllPieces()
 	if err != nil {
-		l.OnError(errors.Wrap(err, "requestAllPieces"))
+		l.OnError(errors.New("requestAllPieces " + err.Error()))
 		return
 	}
 
 	for l.metadataReceived < l.metadataSize {
 		rUmMessage, err := l.readUmMessage()
 		if err != nil {
-			l.OnError(errors.Wrap(err, "readUmMessage"))
+			l.OnError(errors.New("readUmMessage " + err.Error()))
 			return
 		}
 
@@ -328,7 +327,7 @@ func (l *Leech) Do(deadline time.Time) {
 		rExtDict := new(extDict)
 		err = bencode.NewDecoder(rMessageBuf).Decode(rExtDict)
 		if err != nil {
-			l.OnError(errors.Wrap(err, "could not decode ext msg in the loop"))
+			l.OnError(errors.New("could not decode ext msg in the loop " + err.Error()))
 			return
 		}
 
@@ -386,12 +385,12 @@ func (l *Leech) Do(deadline time.Time) {
 	info := new(metainfo.Info)
 	err = bencode.Unmarshal(l.metadata, info)
 	if err != nil {
-		l.OnError(errors.Wrap(err, "unmarshal info"))
+		l.OnError(errors.New("unmarshal info " + err.Error()))
 		return
 	}
 	err = validateInfo(info)
 	if err != nil {
-		l.OnError(errors.Wrap(err, "validateInfo"))
+		l.OnError(errors.New("validateInfo " + err.Error()))
 		return
 	}
 

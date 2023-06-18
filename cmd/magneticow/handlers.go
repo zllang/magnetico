@@ -1,11 +1,10 @@
 package main
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 	"time"
-
-	"github.com/pkg/errors"
 
 	"github.com/tgragnato/magnetico/pkg/persistence"
 )
@@ -14,7 +13,7 @@ import (
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	nTorrents, err := database.GetNumberOfTorrents()
 	if err != nil {
-		handlerError(errors.Wrap(err, "GetNumberOfTorrents"), w)
+		handlerError(errors.New("GetNumberOfTorrents "+err.Error()), w)
 		return
 	}
 
@@ -77,7 +76,7 @@ func feedHandler(w http.ResponseWriter, r *http.Request) {
 		nil,
 	)
 	if err != nil {
-		handlerError(errors.Wrap(err, "query torrent"), w)
+		handlerError(errors.New("query torrent "+err.Error()), w)
 		return
 	}
 

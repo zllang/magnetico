@@ -1,16 +1,14 @@
 package metadata
 
 import (
+	"log"
 	"math/rand"
 	"net"
 	"sync"
 	"time"
 
-	"go.uber.org/zap"
-
 	"github.com/tgragnato/magnetico/cmd/magneticod/dht"
 	"github.com/tgragnato/magnetico/pkg/persistence"
-	"github.com/tgragnato/magnetico/pkg/util"
 )
 
 type Metadata struct {
@@ -85,14 +83,6 @@ func NewSink(deadline time.Duration, maxNLeeches int) *Sink {
 
 	go func() {
 		for range time.Tick(deadline) {
-			ms.incomingInfoHashesMx.Lock()
-			l := len(ms.incomingInfoHashes)
-			ms.incomingInfoHashesMx.Unlock()
-			zap.L().Info("Sink status",
-				zap.Int("activeLeeches", l),
-				zap.Int("nDeleted", ms.deleted),
-				zap.Int("drainQueue", len(ms.drain)),
-			)
 			ms.deleted = 0
 		}
 	}()
@@ -102,7 +92,7 @@ func NewSink(deadline time.Duration, maxNLeeches int) *Sink {
 
 func (ms *Sink) Sink(res dht.Result) {
 	if ms.terminated {
-		zap.L().Panic("Trying to Sink() an already closed Sink!")
+		log.Panicln("Trying to Sink() an already closed Sink!")
 	}
 	ms.incomingInfoHashesMx.Lock()
 	defer ms.incomingInfoHashesMx.Unlock()
@@ -126,13 +116,11 @@ func (ms *Sink) Sink(res dht.Result) {
 			OnError:   ms.onLeechError,
 		}).Do(time.Now().Add(ms.deadline))
 	}
-
-	zap.L().Debug("Sunk!", zap.Int("leeches", len(ms.incomingInfoHashes)), util.HexField("infoHash", infoHash[:]))
 }
 
 func (ms *Sink) Drain() <-chan Metadata {
 	if ms.terminated {
-		zap.L().Panic("Trying to Drain() an already closed Sink!")
+		log.Panicln("Trying to Drain() an already closed Sink!")
 	}
 	return ms.drain
 }
@@ -160,8 +148,6 @@ func (ms *Sink) flush(result Metadata) {
 }
 
 func (ms *Sink) onLeechError(infoHash [20]byte, err error) {
-	zap.L().Debug("leech error", util.HexField("infoHash", infoHash[:]), zap.Error(err))
-
 	ms.incomingInfoHashesMx.Lock()
 	defer ms.incomingInfoHashesMx.Unlock()
 

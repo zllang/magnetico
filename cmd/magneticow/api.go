@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -16,7 +17,6 @@ import (
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/storage"
 	"github.com/gorilla/mux"
-	"go.uber.org/zap"
 	"golang.org/x/text/encoding/charmap"
 
 	"github.com/tgragnato/magnetico/pkg/persistence"
@@ -65,7 +65,7 @@ func (h *ApiReadmeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	files, err := database.GetFiles(infohash)
 	if err != nil {
-		zap.L().Error("GetFiles error", zap.Error(err))
+		log.Printf("GetFiles error %v", err)
 		respondError(w, http.StatusInternalServerError, "Internal Server Error")
 	}
 
@@ -85,7 +85,7 @@ func (h *ApiReadmeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	zap.L().Warn("README")
+	log.Println("README")
 
 	t, err := h.client.AddMagnet("magnet:?xt=urn:btih:" + infohashHex)
 	if err != nil {
@@ -94,7 +94,7 @@ func (h *ApiReadmeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	defer t.Drop()
 
-	zap.L().Warn("WAITING FOR INFO")
+	log.Println("WAITING FOR INFO")
 
 	select {
 	case <-t.GotInfo():
@@ -104,7 +104,7 @@ func (h *ApiReadmeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	zap.L().Warn("GOT INFO!")
+	log.Println("GOT INFO!")
 
 	t.CancelPieces(0, t.NumPieces())
 
@@ -230,7 +230,7 @@ func apiTorrents(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	if err = json.NewEncoder(w).Encode(torrents); err != nil {
-		zap.L().Warn("JSON encode error", zap.Error(err))
+		log.Printf("JSON encode error %v", err)
 	}
 }
 
@@ -254,7 +254,7 @@ func apiTorrent(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	if err = json.NewEncoder(w).Encode(torrent); err != nil {
-		zap.L().Warn("JSON encode error", zap.Error(err))
+		log.Printf("JSON encode error %v", err)
 	}
 }
 
@@ -278,7 +278,7 @@ func apiFilelist(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	if err = json.NewEncoder(w).Encode(files); err != nil {
-		zap.L().Warn("JSON encode error", zap.Error(err))
+		log.Printf("JSON encode error %v", err)
 	}
 }
 
@@ -310,7 +310,7 @@ func apiStatistics(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	if err = json.NewEncoder(w).Encode(stats); err != nil {
-		zap.L().Warn("JSON encode error", zap.Error(err))
+		log.Printf("JSON encode error %v", err)
 	}
 }
 
