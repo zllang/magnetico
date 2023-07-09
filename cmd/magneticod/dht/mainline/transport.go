@@ -11,8 +11,9 @@ import (
 	"time"
 
 	"github.com/anacrolix/torrent/bencode"
-	sockaddr "github.com/libp2p/go-sockaddr/net"
 	"golang.org/x/sys/unix"
+
+	"github.com/tgragnato/magnetico/pkg/util"
 )
 
 var (
@@ -133,7 +134,7 @@ func (t *Transport) readMessages() {
 			continue
 		}
 
-		from := sockaddr.SockaddrToUDPAddr(fromSA)
+		from := util.SockaddrToUDPAddr(fromSA)
 		if from == nil {
 			log.Panicln("dht mainline transport SockaddrToUDPAddr: nil")
 		}
@@ -281,7 +282,7 @@ func (t *Transport) WriteMessages(msg *Message, addr *net.UDPAddr) {
 	if err != nil {
 		log.Panicln("Could NOT marshal an outgoing message! (Programmer error.)")
 	}
-	addrSA := sockaddr.NetAddrToSockaddr(addr)
+	addrSA := util.NetAddrToSockaddr(addr)
 	if addrSA == nil {
 		return
 	}

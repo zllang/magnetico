@@ -1,6 +1,7 @@
 package dht
 
 import (
+	"log"
 	"net"
 	"time"
 
@@ -27,7 +28,9 @@ func NewManager(addrs []string, interval time.Duration, maxNeighbors uint) *Mana
 	manager.output = make(chan Result, 20)
 
 	for _, addr := range addrs {
-		service := mainline.NewIndexingService(addr, interval, maxNeighbors, mainline.IndexingServiceEventHandlers{})
+		service := mainline.NewIndexingService(addr, interval, maxNeighbors, mainline.IndexingServiceEventHandlers{
+			OnResult: manager.onIndexingResult,
+		})
 		manager.indexingServices = append(manager.indexingServices, service)
 		service.Start()
 	}
@@ -37,6 +40,14 @@ func NewManager(addrs []string, interval time.Duration, maxNeighbors uint) *Mana
 
 func (m *Manager) Output() <-chan Result {
 	return m.output
+}
+
+func (m *Manager) onIndexingResult(res mainline.IndexingResult) {
+	select {
+	case m.output <- res:
+	default:
+		log.Println("DHT manager output ch is full, idx result dropped!")
+	}
 }
 
 func (m *Manager) Terminate() {

@@ -7,16 +7,13 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/pkg/profile"
-
-	"github.com/jessevdk/go-flags"
-
 	"github.com/Wessie/appdirs"
+	"github.com/jessevdk/go-flags"
+	"github.com/pkg/profile"
 
 	"github.com/tgragnato/magnetico/cmd/magneticod/bittorrent/metadata"
 	"github.com/tgragnato/magnetico/cmd/magneticod/dht"
 	"github.com/tgragnato/magnetico/cmd/magneticod/dht/mainline"
-
 	"github.com/tgragnato/magnetico/pkg/persistence"
 )
 
