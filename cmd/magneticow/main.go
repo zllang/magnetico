@@ -197,10 +197,7 @@ func parseFlags() error {
 
 	if cmdFlags.Database == "" {
 		opts.Database =
-			"sqlite3://" +
-				appdirs.UserDataDir("magneticod", "", "", false) +
-				"/database.sqlite3" +
-				"?_journal_mode=WAL" // https://github.com/mattn/go-sqlite3#connection-string
+			"postgres://magnetico:magnetico@localhost:5432/magnetico?sslmode=disable"
 	} else {
 		opts.Database = cmdFlags.Database
 	}

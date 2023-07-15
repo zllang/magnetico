@@ -7,7 +7,6 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/Wessie/appdirs"
 	"github.com/jessevdk/go-flags"
 	"github.com/pkg/profile"
 
@@ -113,13 +112,7 @@ func parseFlags() (*opFlags, error) {
 
 	if cmdF.DatabaseURL == "" {
 		opF.DatabaseURL =
-			"sqlite3://" +
-				appdirs.UserDataDir("magneticod", "", "", false) +
-				"/database.sqlite3" +
-				"?_journal_mode=WAL" + // https://github.com/mattn/go-sqlite3#connection-string
-				"&_busy_timeout=3000" + // in milliseconds
-				"&_foreign_keys=true"
-
+			"postgres://magnetico:magnetico@localhost:5432/magnetico?sslmode=disable"
 	} else {
 		opF.DatabaseURL = cmdF.DatabaseURL
 	}
