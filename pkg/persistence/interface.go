@@ -123,12 +123,6 @@ func MakeDatabase(rawURL string) (Database, error) {
 	case "stdout":
 		return makeStdoutDatabase(url_)
 
-	case "beanstalk", "beanstalkd":
-		return makeBeanstalkDatabase(url_)
-
-	case "mysql":
-		return nil, fmt.Errorf("mysql is not yet supported")
-
 	default:
 		return nil, fmt.Errorf("unknown URI scheme: `%s`", url_.Scheme)
 	}
