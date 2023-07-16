@@ -61,7 +61,7 @@ type databaseEngine uint8
 const (
 	Sqlite3 databaseEngine = iota + 1
 	Postgres
-	Beanstalkd
+	Cockroach
 	Stdout
 )
 
@@ -117,6 +117,9 @@ func MakeDatabase(rawURL string) (Database, error) {
 
 	case "postgres":
 		return makePostgresDatabase(url_)
+
+	case "cockroach":
+		return makeCockroachDatabase(url_)
 
 	case "stdout":
 		return makeStdoutDatabase(url_)

@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/url"
 	"strconv"
+	"strings"
 	"text/template"
 	"time"
 	"unicode/utf8"
@@ -16,13 +17,13 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-type postgresDatabase struct {
+type cockroachDatabase struct {
 	conn   *sql.DB
 	schema string
 }
 
-func makePostgresDatabase(url_ *url.URL) (Database, error) {
-	db := new(postgresDatabase)
+func makeCockroachDatabase(url_ *url.URL) (Database, error) {
+	db := new(cockroachDatabase)
 
 	schema := url_.Query().Get("schema")
 	if schema == "" {
@@ -35,7 +36,7 @@ func makePostgresDatabase(url_ *url.URL) (Database, error) {
 	url_.Query().Del("schema")
 
 	var err error
-	db.conn, err = sql.Open("pgx", url_.String())
+	db.conn, err = sql.Open("pgx", strings.Replace(url_.String(), "cockroach://", "postgres://", 1))
 	if err != nil {
 		return nil, errors.New("sql.Open " + err.Error())
 	}
@@ -59,11 +60,11 @@ func makePostgresDatabase(url_ *url.URL) (Database, error) {
 	return db, nil
 }
 
-func (db *postgresDatabase) Engine() databaseEngine {
-	return Postgres
+func (db *cockroachDatabase) Engine() databaseEngine {
+	return Cockroach
 }
 
-func (db *postgresDatabase) DoesTorrentExist(infoHash []byte) (bool, error) {
+func (db *cockroachDatabase) DoesTorrentExist(infoHash []byte) (bool, error) {
 	rows, err := db.conn.Query("SELECT 1 FROM torrents WHERE info_hash = $1;", infoHash)
 	if err != nil {
 		return false, err
@@ -78,7 +79,7 @@ func (db *postgresDatabase) DoesTorrentExist(infoHash []byte) (bool, error) {
 	return exists, nil
 }
 
-func (db *postgresDatabase) AddNewTorrent(infoHash []byte, name string, files []File) error {
+func (db *cockroachDatabase) AddNewTorrent(infoHash []byte, name string, files []File) error {
 	if !utf8.ValidString(name) {
 		log.Printf("Ignoring a torrent whose name is not UTF-8 compliant. infoHash: %s", infoHash)
 		return nil
@@ -147,24 +148,19 @@ func (db *postgresDatabase) AddNewTorrent(infoHash []byte, name string, files []
 	return nil
 }
 
-func (db *postgresDatabase) Close() error {
+func (db *cockroachDatabase) Close() error {
 	return db.conn.Close()
 }
 
-func (db *postgresDatabase) GetNumberOfTorrents() (uint, error) {
-	// Using estimated number of rows which can make queries much faster
-	// https://www.postgresql.org/message-id/568BF820.9060101%40comarch.com
-	// https://wiki.postgresql.org/wiki/Count_estimate
-	rows, err := db.conn.Query(
-		"SELECT reltuples::BIGINT AS estimate_count FROM pg_class WHERE relname='torrents';",
-	)
+func (db *cockroachDatabase) GetNumberOfTorrents() (uint, error) {
+	rows, err := db.conn.Query("SELECT COUNT(*)::BIGINT AS exact_count FROM torrents;")
 	if err != nil {
 		return 0, err
 	}
 	defer rows.Close()
 
 	if !rows.Next() {
-		return 0, fmt.Errorf("no rows returned from `SELECT reltuples::BIGINT AS estimate_count`")
+		return 0, fmt.Errorf("no rows returned")
 	}
 
 	// Returns int64: https://godoc.org/github.com/lib/pq#hdr-Data_Types
@@ -181,7 +177,7 @@ func (db *postgresDatabase) GetNumberOfTorrents() (uint, error) {
 	}
 }
 
-func (db *postgresDatabase) QueryTorrents(
+func (db *cockroachDatabase) QueryTorrents(
 	query string,
 	epoch int64,
 	orderBy OrderingCriteria,
@@ -283,7 +279,7 @@ func (db *postgresDatabase) QueryTorrents(
 	return torrents, nil
 }
 
-func (db *postgresDatabase) GetTorrent(infoHash []byte) (*TorrentMetadata, error) {
+func (db *cockroachDatabase) GetTorrent(infoHash []byte) (*TorrentMetadata, error) {
 	rows, err := db.conn.Query(`
 		SELECT
 			t.info_hash,
@@ -312,7 +308,7 @@ func (db *postgresDatabase) GetTorrent(infoHash []byte) (*TorrentMetadata, error
 	return &tm, nil
 }
 
-func (db *postgresDatabase) GetFiles(infoHash []byte) ([]File, error) {
+func (db *cockroachDatabase) GetFiles(infoHash []byte) ([]File, error) {
 	rows, err := db.conn.Query(`
 		SELECT
        		f.size,
@@ -342,7 +338,7 @@ func (db *postgresDatabase) GetFiles(infoHash []byte) ([]File, error) {
 	return files, nil
 }
 
-func (db *postgresDatabase) GetStatistics(from string, n uint) (*Statistics, error) {
+func (db *cockroachDatabase) GetStatistics(from string, n uint) (*Statistics, error) {
 	fromTime, gran, err := ParseISO8601(from)
 	if err != nil {
 		return nil, errors.New("parsing ISO8601 error " + err.Error())
@@ -414,30 +410,13 @@ func (db *postgresDatabase) GetStatistics(from string, n uint) (*Statistics, err
 	return stats, nil
 }
 
-func (db *postgresDatabase) setupDatabase() error {
+func (db *cockroachDatabase) setupDatabase() error {
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return errors.New("sql.DB.Begin " + err.Error())
 	}
 
 	defer tx.Rollback()
-
-	rows, err := db.conn.Query("SELECT 1 FROM pg_extension WHERE extname = 'pg_trgm';")
-	if err != nil {
-		return err
-	}
-	defer db.closeRows(rows)
-
-	trgmInstalled := rows.Next()
-	if rows.Err() != nil {
-		return err
-	}
-
-	if !trgmInstalled {
-		return fmt.Errorf(
-			"pg_trgm extension is not enabled. You need to execute 'CREATE EXTENSION pg_trgm' on this database",
-		)
-	}
 
 	// Initial Setup for schema version 0:
 	// FROZEN.
@@ -488,7 +467,7 @@ func (db *postgresDatabase) setupDatabase() error {
 	}
 
 	// Get current schema version
-	rows, err = tx.Query("SELECT MAX(schema_version) FROM migrations;")
+	rows, err := tx.Query("SELECT MAX(schema_version) FROM migrations;")
 	if err != nil {
 		return errors.New("sql.Tx.Query (SELECT MAX(version) FROM migrations) " + err.Error())
 	}
@@ -523,13 +502,13 @@ func (db *postgresDatabase) setupDatabase() error {
 	return nil
 }
 
-func (db *postgresDatabase) closeRows(rows *sql.Rows) {
+func (db *cockroachDatabase) closeRows(rows *sql.Rows) {
 	if err := rows.Close(); err != nil {
 		log.Printf("could not close row %v", err)
 	}
 }
 
-func (db *postgresDatabase) orderOn(orderBy OrderingCriteria) string {
+func (db *cockroachDatabase) orderOn(orderBy OrderingCriteria) string {
 	switch orderBy {
 	case ByRelevance:
 		return "discovered_on"
@@ -548,7 +527,7 @@ func (db *postgresDatabase) orderOn(orderBy OrderingCriteria) string {
 	}
 }
 
-func (db *postgresDatabase) executeTemplate(text string, data interface{}, funcs template.FuncMap) string {
+func (db *cockroachDatabase) executeTemplate(text string, data interface{}, funcs template.FuncMap) string {
 	t := template.Must(template.New("anon").Funcs(funcs).Parse(text))
 
 	var buf bytes.Buffer
