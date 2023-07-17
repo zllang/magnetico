@@ -97,7 +97,7 @@ func feedHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func staticHandler(w http.ResponseWriter, r *http.Request) {
-	data, err := Asset(r.URL.Path[1:])
+	data, err := fs.ReadFile(r.URL.Path[1:])
 	if err != nil {
 		http.NotFound(w, r)
 		return

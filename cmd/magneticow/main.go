@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"embed"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -28,6 +29,9 @@ import (
 
 	"github.com/tgragnato/magnetico/pkg/persistence"
 )
+
+//go:embed static/** templates/*
+var fs embed.FS
 
 // Set a Decoder instance as a package global, because it caches
 // meta-data about structs, and an instance can be shared safely.
@@ -170,7 +174,7 @@ func respondError(w http.ResponseWriter, statusCode int, format string, a ...int
 }
 
 func mustAsset(name string) []byte {
-	data, err := Asset(name)
+	data, err := fs.ReadFile(name)
 	if err != nil {
 		log.Panicf("Could NOT access the requested resource! THIS IS A BUG, PLEASE REPORT. %v", err)
 	}
