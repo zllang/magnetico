@@ -132,9 +132,6 @@ func (h *ApiReadmeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	file.Download()
 
 	reader := file.NewReader()
-	// BEWARE:
-	//     ioutil.ReadAll(reader)
-	// returns some adjancent garbage too, for reasons unknown...
 	content := make([]byte, file.Length())
 	_, err = io.ReadFull(reader, content)
 	if err != nil {

@@ -14,25 +14,35 @@ Both programs, combined together, allows anyone with a decent Internet connectio
 *truly decentralised*. Finally!
 
 ## Features
-- Easy installation & minimal requirements:
+
+Easy installation & minimal requirements:
   - Easy to build golang static binaries.
   - Root access is *not* required to install or to use.
-- Near-zero configuration:
-  - Both programs work out of the box, and **magneticow** can be used without a web-server too.
-  - Detailed, step-by-step manual to guide you through the installation.
-- No reliance on any centralised entity:
-  - **magneticod** trawls the BitTorrent DHT by "going" from one node to another, and fetches the
-    metadata using the nodes without using trackers.
-- Resilience:
-  - Unlike client-server model that web applications use, P2P networks are *chaotic* and
-    **magneticod** is designed to handle all the operational errors accordingly.
-    - Currently on paper, wait for the v1.0!
-- High performance implementation in Go:
-  - **magneticod** utilizes every bit of your resources to discover as many infohashes & metadata as
-    possible.
-- Built-in lightweight web interface:
-  - **magneticow** features a lightweight web interface to help you access the database without
-    getting on your way.
+
+### Magneticod
+
+**magneticod** trawls the BitTorrent DHT by "going" from one node to another, and fetches the metadata using the nodes without using trackers. No reliance on any centralised entity!
+
+Unlike client-server model that web applications use, P2P networks are *chaotic* and **magneticod** is designed to handle all the operational errors accordingly.
+
+High performance implementation in Go: **magneticod** utilizes every bit of your resources to discover as many infohashes & metadata as possible.
+
+### Magneticow
+
+**magneticow** features a lightweight web interface to help you access the database without getting on your way.
+
+If you'd like to password-protect the access to **magneticow**, you need to store the credentials
+in file. The `credentials` file must consist of lines of the following format: `<USERNAME>:<BCRYPT HASH>`.
+
+- `<USERNAME>` must start with a small-case (`[a-z]`) ASCII character, might contain non-consecutive underscores except at the end, and consists of small-case a-z characters and digits 0-9.
+- `<BCRYPT HASH>` is the output of the well-known bcrypt function.
+
+You can use `htpasswd` (part of `apache2-utils` on Ubuntu) to create lines:
+
+```
+$  htpasswd -bnBC 12 "USERNAME" "PASSWORD"
+USERNAME:$2y$12$YE01LZ8jrbQbx6c0s2hdZO71dSjn2p/O9XsYJpz.5968yCysUgiaG
+```
 
 ### Screenshots
 

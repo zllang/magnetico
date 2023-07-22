@@ -195,6 +195,10 @@ func parseFlags() error {
 		return fmt.Errorf("`credentials` and `no-auth` cannot be supplied together")
 	}
 
+	if cmdFlags.Cred == "" && !cmdFlags.NoAuth {
+		return fmt.Errorf("you should supply either `credentials` or `no-auth`")
+	}
+
 	opts.Addr = cmdFlags.Addr
 
 	if cmdFlags.Database == "" {
@@ -205,8 +209,6 @@ func parseFlags() error {
 	}
 
 	if !cmdFlags.NoAuth {
-		// Set opts.CredentialsPath to either the default value (computed by appdirs pkg) or to the one
-		// supplied by the user.
 		if cmdFlags.Cred != "" {
 			opts.CredentialsPath = cmdFlags.Cred
 		}
