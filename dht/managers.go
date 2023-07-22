@@ -5,7 +5,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/tgragnato/magnetico/cmd/magneticod/dht/mainline"
+	"github.com/tgragnato/magnetico/dht/mainline"
 )
 
 type Service interface {

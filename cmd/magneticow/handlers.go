@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tgragnato/magnetico/pkg/persistence"
+	"github.com/tgragnato/magnetico/persistence"
 )
 
 // DONE

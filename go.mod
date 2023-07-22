@@ -3,14 +3,12 @@ module github.com/tgragnato/magnetico
 go 1.20
 
 require (
-	github.com/Wessie/appdirs v0.0.0-20141031215813-6573e894f8e2
 	github.com/anacrolix/torrent v1.52.3
 	github.com/dustin/go-humanize v1.0.1
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/schema v1.2.0
 	github.com/jackc/pgx/v5 v5.4.2
 	github.com/jessevdk/go-flags v1.5.0
-	github.com/pkg/profile v1.7.0
 	github.com/willf/bloom v2.0.3+incompatible
 	golang.org/x/crypto v0.11.0
 	golang.org/x/sys v0.10.0
@@ -43,11 +41,9 @@ require (
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/edsrzf/mmap-go v1.1.0 // indirect
-	github.com/felixge/fgprof v0.9.3 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/google/btree v1.1.2 // indirect
-	github.com/google/pprof v0.0.0-20230705174524-200ffdc848b8 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/huandu/xstrings v1.4.0 // indirect

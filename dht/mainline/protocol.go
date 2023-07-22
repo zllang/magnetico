@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/tgragnato/magnetico/pkg/util"
+	"github.com/tgragnato/magnetico/util"
 )
 
 type Protocol struct {

@@ -8,12 +8,11 @@ import (
 	"time"
 
 	"github.com/jessevdk/go-flags"
-	"github.com/pkg/profile"
 
-	"github.com/tgragnato/magnetico/cmd/magneticod/bittorrent/metadata"
-	"github.com/tgragnato/magnetico/cmd/magneticod/dht"
-	"github.com/tgragnato/magnetico/cmd/magneticod/dht/mainline"
-	"github.com/tgragnato/magnetico/pkg/persistence"
+	"github.com/tgragnato/magnetico/dht"
+	"github.com/tgragnato/magnetico/dht/mainline"
+	"github.com/tgragnato/magnetico/metadata"
+	"github.com/tgragnato/magnetico/persistence"
 )
 
 type opFlags struct {
@@ -24,8 +23,6 @@ type opFlags struct {
 	IndexerMaxNeighbors uint
 
 	LeechMaxN int
-
-	Profile string
 }
 
 func main() {
@@ -34,18 +31,6 @@ func main() {
 	if err != nil {
 		// Do not print any error messages as jessevdk/go-flags already did.
 		return
-	}
-
-	switch opFlags.Profile {
-	case "cpu":
-		defer profile.Start(profile.CPUProfile, profile.ProfilePath("."), profile.NoShutdownHook).Stop()
-	case "memory":
-		defer profile.Start(
-			profile.MemProfile,
-			profile.ProfilePath("."),
-			profile.NoShutdownHook,
-			profile.MemProfileRate(1),
-		).Stop()
 	}
 
 	// Handle Ctrl-C gracefully.
@@ -99,8 +84,6 @@ func parseFlags() (*opFlags, error) {
 
 		LeechMaxN uint `long:"leech-max-n" description:"Maximum number of leeches." default:"50"`
 		MaxRPS    uint `long:"max-rps" description:"Maximum requests per second." default:"0"`
-
-		Profile string `long:"profile" description:"Enable profiling." choice:"cpu" choice:"memory"`
 	}
 
 	opF := new(opFlags)
@@ -135,8 +118,6 @@ func parseFlags() (*opFlags, error) {
 	}
 
 	mainline.DefaultThrottleRate = int(cmdF.MaxRPS)
-
-	opF.Profile = cmdF.Profile
 
 	return opF, nil
 }

@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/tgragnato/magnetico/cmd/magneticod/dht"
-	"github.com/tgragnato/magnetico/pkg/persistence"
+	"github.com/tgragnato/magnetico/dht"
+	"github.com/tgragnato/magnetico/persistence"
 )
 
 type Metadata struct {

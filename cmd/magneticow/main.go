@@ -13,21 +13,19 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path"
 	"regexp"
 	"strconv"
 	"sync"
 	"syscall"
 	"time"
 
-	"github.com/Wessie/appdirs"
 	"github.com/dustin/go-humanize"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/jessevdk/go-flags"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/tgragnato/magnetico/pkg/persistence"
+	"github.com/tgragnato/magnetico/persistence"
 )
 
 //go:embed static/** templates/*
@@ -209,12 +207,7 @@ func parseFlags() error {
 	if !cmdFlags.NoAuth {
 		// Set opts.CredentialsPath to either the default value (computed by appdirs pkg) or to the one
 		// supplied by the user.
-		if cmdFlags.Cred == "" {
-			opts.CredentialsPath = path.Join(
-				appdirs.UserConfigDir("magneticow", "", "", false),
-				"credentials",
-			)
-		} else {
+		if cmdFlags.Cred != "" {
 			opts.CredentialsPath = cmdFlags.Cred
 		}
 

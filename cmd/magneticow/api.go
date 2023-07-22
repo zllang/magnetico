@@ -19,7 +19,7 @@ import (
 	"github.com/gorilla/mux"
 	"golang.org/x/text/encoding/charmap"
 
-	"github.com/tgragnato/magnetico/pkg/persistence"
+	"github.com/tgragnato/magnetico/persistence"
 )
 
 type ApiReadmeHandler struct {

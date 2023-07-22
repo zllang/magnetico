@@ -15,7 +15,7 @@ import (
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/metainfo"
 
-	"github.com/tgragnato/magnetico/pkg/persistence"
+	"github.com/tgragnato/magnetico/persistence"
 )
 
 const MAX_METADATA_SIZE = 10 * 1024 * 1024

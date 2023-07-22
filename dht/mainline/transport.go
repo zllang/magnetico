@@ -13,7 +13,7 @@ import (
 	"github.com/anacrolix/torrent/bencode"
 	"golang.org/x/sys/unix"
 
-	"github.com/tgragnato/magnetico/pkg/util"
+	"github.com/tgragnato/magnetico/util"
 )
 
 var (
