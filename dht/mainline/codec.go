@@ -14,7 +14,7 @@ import (
 	"regexp"
 
 	"github.com/anacrolix/torrent/bencode"
-	"github.com/willf/bloom"
+	"github.com/bits-and-blooms/bloom/v3"
 )
 
 type Message struct {
@@ -126,10 +126,16 @@ func (cps *CompactPeers) UnmarshalBencode(b []byte) (err error) {
 }
 
 func (cps CompactPeers) MarshalBinary() (ret []byte, err error) {
-	ret = make([]byte, len(cps)*6)
-	for i, cp := range cps {
-		copy(ret[6*i:], cp.IP.To4())
-		binary.BigEndian.PutUint16(ret[6*i+4:], uint16(cp.Port))
+	ret = []byte{}
+	for _, cp := range cps {
+		ip := cp.IP.To4()
+		if ip == nil {
+			ip = cp.IP.To16()
+		}
+		partial := make([]byte, len(ip)+2)
+		copy(ret, ip)
+		binary.BigEndian.PutUint16(ret[len(ip):], uint16(cp.Port))
+		ret = append(ret, partial...)
 	}
 	return
 }
@@ -215,7 +221,7 @@ func UnmarshalCompactNodeInfos(b []byte) (ret []CompactNodeInfo, err error) {
 func (cni *CompactNodeInfo) UnmarshalBinary(b []byte) error {
 	copy(cni.ID[:], b)
 	b = b[len(cni.ID):]
-	cni.Addr.IP = make([]byte, 4)
+	cni.Addr.IP = make([]byte, len(b)-2)
 	copy(cni.Addr.IP, b)
 	b = b[len(cni.Addr.IP):]
 	cni.Addr.Port = int(binary.BigEndian.Uint16(b))
@@ -241,7 +247,13 @@ func (cni CompactNodeInfo) MarshalBinary() []byte {
 	ret := make([]byte, 20)
 
 	copy(ret, cni.ID)
-	ret = append(ret, cni.Addr.IP.To4()...)
+
+	ip := cni.Addr.IP.To4()
+	if ip == nil {
+		ip = cni.Addr.IP.To16()
+		ret = make([]byte, 32)
+	}
+	ret = append(ret, ip...)
 
 	portEncoding := make([]byte, 2)
 	binary.BigEndian.PutUint16(portEncoding, uint16(cni.Addr.Port))
