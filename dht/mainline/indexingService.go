@@ -103,9 +103,12 @@ func (is *IndexingService) index() {
 
 func (is *IndexingService) bootstrap() {
 	bootstrappingNodes := []string{
-		"router.bittorrent.com:6881",
-		"dht.transmissionbt.com:6881",
-		"dht.libtorrent.org:25401",
+		"dht.tgragnato.it:80",
+		"dht.tgragnato.it:443",
+		"dht.tgragnato.it:1337",
+		"dht.tgragnato.it:6969",
+		"dht.tgragnato.it:6881",
+		"dht.tgragnato.it:25401",
 	}
 
 	for _, node := range bootstrappingNodes {
