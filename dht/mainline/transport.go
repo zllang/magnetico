@@ -288,11 +288,7 @@ func (t *Transport) WriteMessages(msg *Message, addr *net.UDPAddr) {
 	}
 	t.stats.Lock()
 	a := strings.Split(addr.String(), ":")[1]
-	if _, ok := t.stats.sentPorts[a]; ok {
-		t.stats.sentPorts[a]++
-	} else {
-		t.stats.sentPorts[a] = 1
-	}
+	t.stats.sentPorts[a]++
 	t.stats.totalSend++
 	t.stats.Unlock()
 
