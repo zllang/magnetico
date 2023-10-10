@@ -167,8 +167,7 @@ func (db *postgresDatabase) GetNumberOfTorrents() (uint, error) {
 		return 0, fmt.Errorf("no rows returned from `SELECT reltuples::BIGINT AS estimate_count`")
 	}
 
-	// Returns int64: https://godoc.org/github.com/lib/pq#hdr-Data_Types
-	var n *uint
+	var n *int64
 	if err = rows.Scan(&n); err != nil {
 		return 0, err
 	}
@@ -177,7 +176,7 @@ func (db *postgresDatabase) GetNumberOfTorrents() (uint, error) {
 	if n == nil {
 		return 0, nil
 	} else {
-		return *n, nil
+		return uint(*n), nil
 	}
 }
 
