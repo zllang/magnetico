@@ -16,4 +16,7 @@ test:
 
 format:
 	gofmt -w ./cmd/
-	gofmt -w ./pkg/
+	gofmt -w ./dht/
+	gofmt -w ./metadata/
+	gofmt -w ./persistence/
+	gofmt -w ./util/
