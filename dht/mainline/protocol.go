@@ -430,14 +430,8 @@ func validatePingORannouncePeerResponseMessage(msg *Message) bool {
 }
 
 func validateFindNodeResponseMessage(msg *Message) bool {
-	//lint:ignore S1008 to be done later
-	if len(msg.R.ID) != 20 {
-		return false
-	}
-
 	// TODO: check nodes field
-
-	return true
+	return len(msg.R.ID) == 20
 }
 
 func validateGetPeersResponseMessage(msg *Message) bool {
