@@ -2,11 +2,12 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "feat/golangci_lint" ]
   pull_request:
     branches: [ "main" ]
 
 jobs:
+
   analyze:
     name: Analyze
     runs-on: self-hosted
@@ -37,8 +38,6 @@ jobs:
 
     - name: Autobuild
       uses: github/codeql-action/autobuild@v3
-      with:
-        languages: ${{ matrix.language }}
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
