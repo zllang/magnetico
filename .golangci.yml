@@ -1,0 +1,41 @@
+run:
+  concurrency: 4
+  timeout: 5m
+  tests: true
+  allow-parallel-runners: true
+  go: '1.21'
+
+linters:
+  enable:
+    - gosec
+
+issues:
+  exclude-rules:
+
+    - linters:
+        - staticcheck
+      text: "SA4027:"
+
+    - linters:
+        - staticcheck
+      text: "ST1005:"
+
+    - path: metadata/leech.go
+      text: "weak cryptographic primitive"
+      linters:
+        - gosec
+
+    - path: dht/mainline/protocol.go
+      text: "weak cryptographic primitive"
+      linters:
+        - gosec
+
+    - path: metadata/sink.go
+      text: "weak random number generator"
+      linters:
+        - gosec
+
+    - path: cmd/magneticow/main.go
+      text: "no support for setting timeouts"
+      linters:
+        - gosec
