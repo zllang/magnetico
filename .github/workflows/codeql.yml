@@ -2,7 +2,7 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ "main", "feat/golangci_lint" ]
+    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
