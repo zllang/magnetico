@@ -1,6 +1,10 @@
 # magnetico
 *Autonomous (self-hosted) BitTorrent DHT search engine suite.*
 
+[![Go](https://github.com/tgragnato/magnetico/actions/workflows/go.yml/badge.svg)](https://github.com/tgragnato/magnetico/actions/workflows/go.yml)
+[![Lint](https://github.com/tgragnato/magnetico/actions/workflows/lint.yml/badge.svg)](https://github.com/tgragnato/magnetico/actions/workflows/lint.yml)
+[![CodeQL](https://github.com/tgragnato/magnetico/actions/workflows/codeql.yml/badge.svg)](https://github.com/tgragnato/magnetico/actions/workflows/codeql.yml)
+
 ![Flow of Operations](/doc/operations.svg)
 
 magnetico is the first autonomous (self-hosted) BitTorrent DHT search engine suite that is *designed for end-users*. The suite consists of two packages:
