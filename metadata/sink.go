@@ -41,8 +41,6 @@ type Sink struct {
 
 	terminated  bool
 	termination chan interface{}
-
-	deleted int
 }
 
 func randomID() []byte {
@@ -76,12 +74,6 @@ func NewSink(deadline time.Duration, maxNLeeches int) *Sink {
 	ms.drain = make(chan Metadata, 10)
 	ms.incomingInfoHashes = make(map[[20]byte][]net.TCPAddr)
 	ms.termination = make(chan interface{})
-
-	go func() {
-		for range time.Tick(deadline) {
-			ms.deleted = 0
-		}
-	}()
 
 	return ms
 }
@@ -155,7 +147,6 @@ func (ms *Sink) onLeechError(infoHash [20]byte, err error) {
 			OnError:   ms.onLeechError,
 		}).Do(time.Now().Add(ms.deadline))
 	} else {
-		ms.deleted++
 		delete(ms.incomingInfoHashes, infoHash)
 	}
 }
