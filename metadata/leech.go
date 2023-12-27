@@ -14,7 +14,6 @@ import (
 
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/metainfo"
-
 	"github.com/tgragnato/magnetico/persistence"
 )
 

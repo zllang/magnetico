@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/jessevdk/go-flags"
-
 	"github.com/tgragnato/magnetico/dht"
 	"github.com/tgragnato/magnetico/dht/mainline"
 	"github.com/tgragnato/magnetico/metadata"

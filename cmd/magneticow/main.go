@@ -23,9 +23,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/jessevdk/go-flags"
-	"golang.org/x/crypto/bcrypt"
-
 	"github.com/tgragnato/magnetico/persistence"
+	"golang.org/x/crypto/bcrypt"
 )
 
 //go:embed static/** templates/*

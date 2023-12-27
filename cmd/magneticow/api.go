@@ -16,9 +16,8 @@ import (
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/storage"
 	"github.com/gorilla/mux"
-	"golang.org/x/text/encoding/charmap"
-
 	"github.com/tgragnato/magnetico/persistence"
+	"golang.org/x/text/encoding/charmap"
 )
 
 const (

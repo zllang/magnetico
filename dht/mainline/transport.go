@@ -11,9 +11,8 @@ import (
 	"time"
 
 	"github.com/anacrolix/torrent/bencode"
-	"golang.org/x/sys/unix"
-
 	"github.com/tgragnato/magnetico/util"
+	"golang.org/x/sys/unix"
 )
 
 var (
