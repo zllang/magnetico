@@ -70,11 +70,10 @@ func IsValidIPv6(ip string) bool {
 	return true
 }
 
-func getZone(zoneID uint32) string {
-	var zone = ""
+func getZone(zoneID uint32) (zone string) {
 	ifi, err := net.InterfaceByIndex(int(zoneID))
-	if err == nil && zoneID != 0 {
+	if err == nil {
 		zone = ifi.Name
 	}
-	return zone
+	return
 }

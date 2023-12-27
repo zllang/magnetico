@@ -20,6 +20,10 @@ issues:
         - staticcheck
       text: "ST1005:"
 
+    - text: "weak random number generator"
+      linters:
+        - gosec
+
     - path: metadata/leech.go
       text: "weak cryptographic primitive"
       linters:
@@ -27,11 +31,6 @@ issues:
 
     - path: dht/mainline/protocol.go
       text: "weak cryptographic primitive"
-      linters:
-        - gosec
-
-    - path: metadata/sink.go
-      text: "weak random number generator"
       linters:
         - gosec
 

@@ -1,9 +1,9 @@
 package util
 
 import (
+	"math/rand"
 	"net"
 	"reflect"
-	"strings"
 	"testing"
 
 	"golang.org/x/sys/unix"
@@ -166,37 +166,48 @@ func TestIsValidIPv6(t *testing.T) {
 func Test_getZone(t *testing.T) {
 	t.Parallel()
 	var tests = []struct {
-		name       string
-		zoneID     uint32
-		wantEmpty  bool
-		wantPrefix string
+		name   string
+		zoneID uint32
+		want   string
 	}{
 		{
-			name:      "Zone1",
-			zoneID:    0,
-			wantEmpty: true,
+			name:   "ZoneZero",
+			zoneID: 0,
+			want:   "",
 		},
 		{
-			name:       "Zone2",
-			zoneID:     1,
-			wantEmpty:  false,
-			wantPrefix: "lo",
-		},
-		{
-			name:      "Zone3",
-			zoneID:    123456,
-			wantEmpty: true,
+			name:   "ZoneRandom",
+			zoneID: uint32(rand.Intn(900000) + 100000),
+			want:   "",
 		},
 	}
+
+	// Avoid issues in sandboxes with limited network permissions
+	loopbackIface := "lo"
+	lo, err := net.InterfaceByName(loopbackIface)
+	if err != nil {
+		loopbackIface = "lo0"
+		lo, err = net.InterfaceByName(loopbackIface)
+	}
+	if err == nil {
+		tests = append(tests, struct {
+			name   string
+			zoneID uint32
+			want   string
+		}{
+			name:   "ZoneLoopback",
+			zoneID: uint32(lo.Index),
+			want:   loopbackIface,
+		})
+	}
+
 	for _, tt := range tests {
 		test := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			got := getZone(test.zoneID)
-			if test.wantEmpty && got != "" {
-				t.Errorf("getZone() = %v, want empty", got)
-			} else if !strings.HasPrefix(got, test.wantPrefix) {
-				t.Errorf("getZone() = %v, want prefix %v", got, test.wantPrefix)
+			if got != test.want {
+				t.Errorf("getZone() = %v, want %v", got, test.want)
 			}
 		})
 	}
