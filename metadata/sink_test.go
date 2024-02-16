@@ -1,6 +1,7 @@
 package metadata
 
 import (
+	"net"
 	"testing"
 	"time"
 )
@@ -26,7 +27,7 @@ func TestPeerId(t *testing.T) {
 	}
 }
 
-func TestNewSink(t *testing.T) {
+func TestSink_NewSink(t *testing.T) {
 	sink := NewSink(time.Second, 10)
 
 	if sink == nil ||
@@ -36,7 +37,50 @@ func TestNewSink(t *testing.T) {
 		sink.drain == nil ||
 		sink.incomingInfoHashes == nil ||
 		sink.termination == nil {
-		t.Errorf("One or more fields of Sink were not initialized correctly.")
+		t.Error("One or more fields of Sink were not initialized correctly")
 	}
 
+}
+
+type TestResult struct {
+	infoHash  [20]byte
+	peerAddrs []net.TCPAddr
+}
+
+func (tr *TestResult) InfoHash() [20]byte {
+	return tr.infoHash
+}
+
+func (tr *TestResult) PeerAddrs() []net.TCPAddr {
+	return tr.peerAddrs
+}
+
+func TestSink_Sink(t *testing.T) {
+	sink := NewSink(time.Minute, 2)
+	if len(sink.incomingInfoHashes) != 0 {
+		t.Error("incomingInfoHashes field of Sink has not been initialized correctly")
+	}
+	testResult := &TestResult{
+		infoHash:  [20]byte{255},
+		peerAddrs: []net.TCPAddr{{IP: net.ParseIP("127.0.0.1"), Port: 443, Zone: ""}},
+	}
+
+	sink.Sink(testResult)
+	if len(sink.incomingInfoHashes) != 1 {
+		t.Error("incomingInfoHashes field of Sink has not been filled in correctly")
+	}
+
+	sink.Sink(testResult)
+	if len(sink.incomingInfoHashes) != 1 {
+		t.Error("the same InfoHash should not be processed multiple times")
+	}
+}
+
+func TestSink_Terminate(t *testing.T) {
+	sink := NewSink(time.Minute, 1)
+	sink.Terminate()
+
+	if !sink.terminated {
+		t.Error("terminated field of Sink has not been set to true")
+	}
 }
