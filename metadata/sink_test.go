@@ -8,6 +8,7 @@ import (
 
 func TestRandomDigit(t *testing.T) {
 	t.Parallel()
+
 	for i := 0; i < 100; i++ {
 		digit := randomDigit()
 		if digit < '0' || digit > '9' {
@@ -18,6 +19,7 @@ func TestRandomDigit(t *testing.T) {
 
 func TestPeerId(t *testing.T) {
 	t.Parallel()
+
 	for i := 0; i < 100; i++ {
 		peerID := randomID()
 		lenPeerID := len(peerID)
@@ -28,8 +30,9 @@ func TestPeerId(t *testing.T) {
 }
 
 func TestSink_NewSink(t *testing.T) {
-	sink := NewSink(time.Second, 10)
+	t.Parallel()
 
+	sink := NewSink(time.Second, 10)
 	if sink == nil ||
 		len(sink.PeerID) != 20 ||
 		sink.deadline != time.Second ||
@@ -56,6 +59,8 @@ func (tr *TestResult) PeerAddrs() []net.TCPAddr {
 }
 
 func TestSink_Sink(t *testing.T) {
+	t.Parallel()
+
 	sink := NewSink(time.Minute, 2)
 	if len(sink.incomingInfoHashes) != 0 {
 		t.Error("incomingInfoHashes field of Sink has not been initialized correctly")
@@ -77,10 +82,26 @@ func TestSink_Sink(t *testing.T) {
 }
 
 func TestSink_Terminate(t *testing.T) {
+	t.Parallel()
+
 	sink := NewSink(time.Minute, 1)
 	sink.Terminate()
 
 	if !sink.terminated {
 		t.Error("terminated field of Sink has not been set to true")
 	}
+}
+
+func TestSink_Drain(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("No panic while Draining an already closed Sink!")
+		}
+	}()
+
+	sink := NewSink(time.Minute, 1)
+	sink.Terminate()
+	sink.Drain()
 }
