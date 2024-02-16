@@ -125,28 +125,33 @@ func (ms *Sink) flush(result Metadata) {
 	}
 
 	ms.drain <- result
-	// Delete the infoHash from ms.incomingInfoHashes ONLY AFTER once we've flushed the
-	// metadata!
-	ms.incomingInfoHashesMx.Lock()
-	defer ms.incomingInfoHashesMx.Unlock()
 
 	var infoHash [20]byte
 	copy(infoHash[:], result.InfoHash)
-	delete(ms.incomingInfoHashes, infoHash)
+	ms.delete(infoHash)
 }
 
 func (ms *Sink) onLeechError(infoHash [20]byte, err error) {
 	ms.incomingInfoHashesMx.Lock()
 	defer ms.incomingInfoHashesMx.Unlock()
 
-	if len(ms.incomingInfoHashes[infoHash]) > 0 {
-		peer := ms.incomingInfoHashes[infoHash][0]
-		ms.incomingInfoHashes[infoHash] = ms.incomingInfoHashes[infoHash][1:]
+	if peerAddrs, ok := ms.incomingInfoHashes[infoHash]; ok {
+		if len(peerAddrs) == 0 {
+			ms.delete(infoHash)
+			return
+		}
+
+		peer := peerAddrs[0]
+		ms.incomingInfoHashes[infoHash] = peerAddrs[1:]
 		go NewLeech(infoHash, &peer, ms.PeerID, LeechEventHandlers{
 			OnSuccess: ms.flush,
 			OnError:   ms.onLeechError,
 		}).Do(time.Now().Add(ms.deadline))
-	} else {
-		delete(ms.incomingInfoHashes, infoHash)
 	}
+}
+
+func (ms *Sink) delete(infoHash [20]byte) {
+	ms.incomingInfoHashesMx.Lock()
+	defer ms.incomingInfoHashesMx.Unlock()
+	delete(ms.incomingInfoHashes, infoHash)
 }
