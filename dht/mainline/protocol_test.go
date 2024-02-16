@@ -219,3 +219,55 @@ func TestNewGetPeersResponseWithNodes(t *testing.T) {
 		t.Errorf("NewGetPeersResponseWithNodes returned an invalid message!")
 	}
 }
+
+func TestNewProtocol(t *testing.T) {
+	t.Parallel()
+	defer func() {
+		if r := recover(); r != nil {
+			t.Error("Panic while building a Transport for the Protocol")
+		}
+	}()
+
+	service := new(IndexingService)
+	NewProtocol("0.0.0.0:0", ProtocolEventHandlers{
+		OnFindNodeResponse:         service.onFindNodeResponse,
+		OnGetPeersResponse:         service.onGetPeersResponse,
+		OnSampleInfohashesResponse: service.onSampleInfohashesResponse,
+	})
+}
+
+func TestProtocol_Start(t *testing.T) {
+	t.Parallel()
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("Starting a mainline/Protocol that has been already started should panic")
+		}
+	}()
+
+	service := new(IndexingService)
+	protocol := NewProtocol("0.0.0.0:0", ProtocolEventHandlers{
+		OnFindNodeResponse:         service.onFindNodeResponse,
+		OnGetPeersResponse:         service.onGetPeersResponse,
+		OnSampleInfohashesResponse: service.onSampleInfohashesResponse,
+	})
+	protocol.Start()
+	protocol.Start()
+}
+
+func TestProtocol_Terminate(t *testing.T) {
+	t.Parallel()
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("Terminating a mainline/Protocol that has been already stopped should panic")
+		}
+	}()
+
+	service := new(IndexingService)
+	protocol := NewProtocol("0.0.0.0:0", ProtocolEventHandlers{
+		OnFindNodeResponse:         service.onFindNodeResponse,
+		OnGetPeersResponse:         service.onGetPeersResponse,
+		OnSampleInfohashesResponse: service.onSampleInfohashesResponse,
+	})
+	protocol.Terminate()
+	protocol.Terminate()
+}
