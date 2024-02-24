@@ -1,11 +1,16 @@
 package mainline
 
 import (
+	"math/rand"
+	"net"
+	"strconv"
 	"testing"
+	"time"
 )
 
 func TestUint16BE(t *testing.T) {
 	t.Parallel()
+
 	tests := []struct {
 		name string
 		v    uint16
@@ -25,6 +30,45 @@ func TestUint16BE(t *testing.T) {
 			if got != test.want {
 				t.Errorf("toBigEndianBytes(%v) = %v, want %v", test.v, got, test.want)
 			}
+		})
+	}
+}
+
+func TestBasicIndexingService(t *testing.T) {
+	t.Parallel()
+
+	randomPort := rand.Intn(65535) + 1
+	tests := []struct {
+		name          string
+		laddr         string
+		interval      time.Duration
+		maxNeighbors  uint
+		eventHandlers IndexingServiceEventHandlers
+	}{
+		{
+			name:          "Loopback Fixed",
+			laddr:         "127.0.0.1:12345",
+			interval:      500 * time.Millisecond,
+			maxNeighbors:  0,
+			eventHandlers: IndexingServiceEventHandlers{},
+		},
+		{
+			name:          "Loopback Random",
+			laddr:         net.JoinHostPort("127.0.0.1", strconv.Itoa(randomPort)),
+			interval:      500 * time.Second,
+			maxNeighbors:  0,
+			eventHandlers: IndexingServiceEventHandlers{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			is := NewIndexingService(tt.laddr, tt.interval, tt.maxNeighbors, tt.eventHandlers)
+			if is == nil {
+				t.Error("NewIndexingService() = nil, wanted != nil")
+			}
+			is.Start()
+			time.Sleep(time.Second)
+			is.Terminate()
 		})
 	}
 }
