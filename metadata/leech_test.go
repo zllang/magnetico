@@ -7,6 +7,7 @@ import (
 
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/metainfo"
+	"github.com/tgragnato/magnetico/util"
 )
 
 func TestDecoder(t *testing.T) {
@@ -168,7 +169,7 @@ func TestValidateInfo(t *testing.T) {
 		test := tt
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			if err := validateInfo(test.info); (err != nil) != test.wantErr {
+			if err := util.ValidateInfo(test.info); (err != nil) != test.wantErr {
 				t.Errorf("validateInfo() error = %v, wantErr %v", err, test.wantErr)
 			}
 		})

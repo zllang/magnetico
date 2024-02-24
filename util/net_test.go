@@ -1,4 +1,4 @@
-package util
+package util_test
 
 import (
 	"math/rand"
@@ -6,31 +6,9 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/tgragnato/magnetico/util"
 	"golang.org/x/sys/unix"
 )
-
-func TestRoundToDecimal(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		name          string
-		input         float64
-		decimalPlaces int
-		want          float64
-	}{
-		{"round to 1 decimal places", 1.2345, 1, 1.2},
-		{"round to 2 decimal places", 1.2345, 2, 1.23},
-		{"round to 4 decimal places", 1.2345, 4, 1.2345},
-	}
-	for _, tt := range tests {
-		test := tt
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-			if got := RoundToDecimal(test.input, test.decimalPlaces); got != test.want {
-				t.Errorf("RoundToDecimal() = %v, want %v", got, test.want)
-			}
-		})
-	}
-}
 
 func TestNetAddrToSockaddr(t *testing.T) {
 	t.Parallel()
@@ -75,7 +53,7 @@ func TestNetAddrToSockaddr(t *testing.T) {
 		test := tt
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			got := NetAddrToSockaddr(test.addr)
+			got := util.NetAddrToSockaddr(test.addr)
 			if !reflect.DeepEqual(got, test.want) {
 				t.Errorf("NetAddrToSockaddr() = %v, want %v", got, test.want)
 			}
@@ -124,7 +102,7 @@ func TestSockaddrToUDPAddr(t *testing.T) {
 		test := tt
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			got := SockaddrToUDPAddr(test.sockAddr)
+			got := util.SockaddrToUDPAddr(test.sockAddr)
 			if !reflect.DeepEqual(got, test.want) {
 				t.Errorf("SockaddrToUDPAddr() = %v, want %v", got, test.want)
 			}
@@ -156,14 +134,14 @@ func TestIsValidIPv6(t *testing.T) {
 		test := tt
 		t.Run(test.ip, func(t *testing.T) {
 			t.Parallel()
-			if got := IsValidIPv6(test.ip); got != test.want {
+			if got := util.IsValidIPv6(test.ip); got != test.want {
 				t.Errorf("IsValidIPv6() = %v, want %v", got, test.want)
 			}
 		})
 	}
 }
 
-func Test_getZone(t *testing.T) {
+func Test_GetZone(t *testing.T) {
 	t.Parallel()
 	var tests = []struct {
 		name   string
@@ -205,7 +183,7 @@ func Test_getZone(t *testing.T) {
 		test := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got := getZone(test.zoneID)
+			got := util.GetZone(test.zoneID)
 			if got != test.want {
 				t.Errorf("getZone() = %v, want %v", got, test.want)
 			}

@@ -15,6 +15,7 @@ import (
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/tgragnato/magnetico/persistence"
+	"github.com/tgragnato/magnetico/util"
 )
 
 const MAX_METADATA_SIZE = 10 * 1024 * 1024
@@ -387,7 +388,7 @@ func (l *Leech) Do(deadline time.Time) {
 		l.OnError(errors.New("unmarshal info " + err.Error()))
 		return
 	}
-	err = validateInfo(info)
+	err = util.ValidateInfo(info)
 	if err != nil {
 		l.OnError(errors.New("validateInfo " + err.Error()))
 		return
@@ -409,14 +410,10 @@ func (l *Leech) Do(deadline time.Time) {
 		}
 	}
 
-	var totalSize uint64
-	for _, file := range files {
-		if file.Size < 0 {
-			l.OnError(fmt.Errorf("file size less than zero"))
-			return
-		}
-
-		totalSize += uint64(file.Size)
+	totalSize, err := util.TotalSize(files)
+	if err != nil {
+		l.OnError(err)
+		return
 	}
 
 	l.ev.OnSuccess(Metadata{
@@ -426,23 +423,6 @@ func (l *Leech) Do(deadline time.Time) {
 		DiscoveredOn: time.Now().Unix(),
 		Files:        files,
 	})
-}
-
-// COPIED FROM anacrolix/torrent
-func validateInfo(info *metainfo.Info) error {
-	if len(info.Pieces)%20 != 0 {
-		return errors.New("pieces has invalid length")
-	}
-	if info.PieceLength == 0 {
-		if info.TotalLength() != 0 {
-			return errors.New("zero piece length")
-		}
-	} else {
-		if int((info.TotalLength()+info.PieceLength-1)/info.PieceLength) != info.NumPieces() {
-			return errors.New("piece count and file lengths are at odds")
-		}
-	}
-	return nil
 }
 
 func (l *Leech) readExactly(n uint) ([]byte, error) {

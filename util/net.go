@@ -1,21 +1,10 @@
 package util
 
 import (
-	"math"
 	"net"
 
 	"golang.org/x/sys/unix"
 )
-
-// RoundToDecimal round iFloat to iDecimalPlaces decimal points
-func RoundToDecimal(iFloat float64, iDecimalPlaces int) float64 {
-	var multiplier float64 = 10
-	for i := 1; i < iDecimalPlaces; i++ {
-		multiplier *= 10
-	}
-
-	return math.Round(iFloat*multiplier) / multiplier
-}
 
 // UDPAddr -> RawSockaddr conversion
 func NetAddrToSockaddr(addr *net.UDPAddr) unix.Sockaddr {
@@ -55,7 +44,7 @@ func SockaddrToUDPAddr(sockAddr unix.Sockaddr) *net.UDPAddr {
 		return &net.UDPAddr{
 			IP:   typedSocketAddr.Addr[:],
 			Port: typedSocketAddr.Port,
-			Zone: getZone(typedSocketAddr.ZoneId),
+			Zone: GetZone(typedSocketAddr.ZoneId),
 		}
 	default:
 		return nil
@@ -70,7 +59,7 @@ func IsValidIPv6(ip string) bool {
 	return true
 }
 
-func getZone(zoneID uint32) (zone string) {
+func GetZone(zoneID uint32) (zone string) {
 	ifi, err := net.InterfaceByIndex(int(zoneID))
 	if err == nil {
 		zone = ifi.Name
