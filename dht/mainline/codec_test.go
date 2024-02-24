@@ -261,7 +261,7 @@ func TestUnmarshalCompactPeers(t *testing.T) {
 				},
 			},
 		},
-		/*{
+		{
 			binaryCompactPeers: []byte{
 				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 123,
 			},
@@ -271,7 +271,39 @@ func TestUnmarshalCompactPeers(t *testing.T) {
 					Port: 123,
 				},
 			},
-		},*/
+		},
+		{
+			binaryCompactPeers: []byte{
+				127, 0, 0, 1, 1, 187,
+				192, 168, 1, 1, 0, 80,
+			},
+			expectedCompactPeers: CompactPeers{
+				{
+					IP:   net.IP{127, 0, 0, 1},
+					Port: 443,
+				},
+				{
+					IP:   net.IP{192, 168, 1, 1},
+					Port: 80,
+				},
+			},
+		},
+		{
+			binaryCompactPeers: []byte{
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 123,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 80,
+			},
+			expectedCompactPeers: CompactPeers{
+				{
+					IP:   net.IP{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+					Port: 123,
+				},
+				{
+					IP:   net.IP{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+					Port: 80,
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		compactPeers, err := UnmarshalCompactPeers(tt.binaryCompactPeers)

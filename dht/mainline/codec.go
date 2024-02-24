@@ -175,11 +175,18 @@ func (cp *CompactPeer) UnmarshalBencode(b []byte) (err error) {
 }
 
 func UnmarshalCompactPeers(b []byte) (ret []CompactPeer, err error) {
-	num := len(b) / 6
+	riddle := 0
+	if len(b)%18 == 0 {
+		riddle = 18
+	} else if len(b)%6 == 0 {
+		riddle = 6
+	}
+
+	num := len(b) / riddle
 	ret = make([]CompactPeer, num)
 	for i := range make([]struct{}, num) {
-		off := i * 6
-		err = ret[i].UnmarshalBinary(b[off : off+6])
+		off := i * riddle
+		err = ret[i].UnmarshalBinary(b[off : off+riddle])
 		if err != nil {
 			return
 		}
