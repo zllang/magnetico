@@ -231,3 +231,58 @@ func TestMarshal(t *testing.T) {
 		}
 	}
 }
+
+func TestUnmarshalCompactPeers(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		binaryCompactPeers   []byte
+		expectedCompactPeers CompactPeers
+	}{
+		{
+			binaryCompactPeers: []byte{
+				127, 0, 0, 1, 1, 187,
+			},
+			expectedCompactPeers: CompactPeers{
+				{
+					IP:   net.IP{127, 0, 0, 1},
+					Port: 443,
+				},
+			},
+		},
+		{
+			binaryCompactPeers: []byte{
+				192, 168, 1, 1, 0, 80,
+			},
+			expectedCompactPeers: CompactPeers{
+				{
+					IP:   net.IP{192, 168, 1, 1},
+					Port: 80,
+				},
+			},
+		},
+		/*{
+			binaryCompactPeers: []byte{
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 123,
+			},
+			expectedCompactPeers: CompactPeers{
+				{
+					IP:   net.IP{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+					Port: 123,
+				},
+			},
+		},*/
+	}
+	for _, tt := range tests {
+		compactPeers, err := UnmarshalCompactPeers(tt.binaryCompactPeers)
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if len(compactPeers) != len(tt.expectedCompactPeers) {
+			t.Error("Expected length of compactPeers and expectedCompactPeers to be the same")
+		}
+		if !reflect.DeepEqual(compactPeers[0], tt.expectedCompactPeers[0]) {
+			t.Errorf("Expected %v, got %v", tt.expectedCompactPeers[0], compactPeers[0])
+		}
+	}
+}
