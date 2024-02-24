@@ -286,3 +286,40 @@ func TestUnmarshalCompactPeers(t *testing.T) {
 		}
 	}
 }
+
+func TestUnmarshalBinary(t *testing.T) {
+	tests := []struct {
+		name    string
+		bytes   []byte
+		wantErr bool
+	}{
+		{
+			name:    "Empty IP:Port",
+			bytes:   []byte{},
+			wantErr: true,
+		},
+		{
+			name:    "Valid IPv4:Port",
+			bytes:   []byte{127, 0, 0, 1, 1, 187},
+			wantErr: false,
+		},
+		{
+			name:    "Valid IPv6:Port",
+			bytes:   []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 123},
+			wantErr: false,
+		},
+		{
+			name:    "Invalid IP:Port",
+			bytes:   []byte{0, 0, 0, 0, 0, 0, 0, 0},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cp := &CompactPeer{}
+			if err := cp.UnmarshalBinary(tt.bytes); (err != nil) != tt.wantErr {
+				t.Errorf("CompactPeer.UnmarshalBinary() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
