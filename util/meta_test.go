@@ -11,6 +11,7 @@ import (
 )
 
 func TestTotalSize(t *testing.T) {
+	t.Parallel()
 	positiveRand := rand.Int63n(math.MaxInt64)
 
 	tests := []struct {
@@ -74,6 +75,8 @@ func TestTotalSize(t *testing.T) {
 }
 
 func TestValidateInfo(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		info    *metainfo.Info
@@ -109,6 +112,43 @@ func TestValidateInfo(t *testing.T) {
 				Private:     nil,
 				Source:      "",
 				Files:       []metainfo.FileInfo{},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid info",
+			info: &metainfo.Info{
+				Pieces:      make([]byte, 20),
+				PieceLength: 1,
+				Length:      20,
+				Files:       []metainfo.FileInfo{{Length: 1, Path: []string{"file1"}}},
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid pieces length",
+			info: &metainfo.Info{
+				Pieces:      make([]byte, 21),
+				PieceLength: 1,
+				Length:      20,
+			},
+			wantErr: true,
+		},
+		{
+			name: "zero piece length with total length",
+			info: &metainfo.Info{
+				Pieces:      make([]byte, 20),
+				PieceLength: 0,
+				Length:      20,
+			},
+			wantErr: true,
+		},
+		{
+			name: "mismatch piece count and file lengths",
+			info: &metainfo.Info{
+				Pieces:      make([]byte, 20),
+				PieceLength: 1,
+				Length:      21,
 			},
 			wantErr: true,
 		},

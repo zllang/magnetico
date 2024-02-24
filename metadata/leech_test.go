@@ -6,8 +6,6 @@ import (
 	"testing"
 
 	"github.com/anacrolix/torrent/bencode"
-	"github.com/anacrolix/torrent/metainfo"
-	"github.com/tgragnato/magnetico/util"
 )
 
 func TestDecoder(t *testing.T) {
@@ -123,55 +121,6 @@ func TestToBigEndianNegative(t *testing.T) {
 				}
 			}()
 			toBigEndian(test.i, test.n)
-		})
-	}
-}
-
-func TestValidateInfo(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		name    string
-		info    *metainfo.Info
-		wantErr bool
-	}{
-		{"valid info",
-			&metainfo.Info{
-				Pieces:      make([]byte, 20),
-				PieceLength: 1,
-				Length:      20,
-				Files:       []metainfo.FileInfo{{Length: 1, Path: []string{"file1"}}},
-			},
-			false,
-		}, {"invalid pieces length",
-			&metainfo.Info{
-				Pieces:      make([]byte, 21),
-				PieceLength: 1,
-				Length:      20,
-			},
-			true,
-		}, {"zero piece length with total length",
-			&metainfo.Info{
-				Pieces:      make([]byte, 20),
-				PieceLength: 0,
-				Length:      20,
-			},
-			true,
-		}, {"mismatch piece count and file lengths",
-			&metainfo.Info{
-				Pieces:      make([]byte, 20),
-				PieceLength: 1,
-				Length:      21,
-			},
-			true,
-		},
-	}
-	for _, tt := range tests {
-		test := tt
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-			if err := util.ValidateInfo(test.info); (err != nil) != test.wantErr {
-				t.Errorf("validateInfo() error = %v, wantErr %v", err, test.wantErr)
-			}
 		})
 	}
 }
