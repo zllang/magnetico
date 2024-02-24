@@ -2,6 +2,7 @@ package metadata
 
 import (
 	"net"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -104,4 +105,38 @@ func TestSink_Drain(t *testing.T) {
 	sink := NewSink(time.Minute, 1)
 	sink.Terminate()
 	sink.Drain()
+}
+
+func TestFlush(t *testing.T) {
+	t.Parallel()
+
+	sink := NewSink(time.Minute, 1)
+	testMetadata := Metadata{
+		InfoHash: []byte{1, 2, 3, 4, 5, 6},
+	}
+
+	go func() {
+		select {
+		case result := <-sink.drain:
+			if !reflect.DeepEqual(result.InfoHash, testMetadata.InfoHash) {
+				t.Errorf("Expected flushed InfoHash to be %v, but got %v", testMetadata.InfoHash, result.InfoHash)
+			}
+
+		case <-time.After(1 * time.Second):
+			t.Error("Timeout waiting for flush result")
+		}
+	}()
+
+	sink.flush(testMetadata)
+
+	time.Sleep(500 * time.Millisecond)
+
+	var infoHash [20]byte
+	copy(infoHash[:], testMetadata.InfoHash)
+	sink.incomingInfoHashesMx.Lock()
+	_, exists := sink.incomingInfoHashes[infoHash]
+	sink.incomingInfoHashesMx.Unlock()
+	if exists {
+		t.Error("InfoHash was not deleted after flush")
+	}
 }
