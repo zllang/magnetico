@@ -1,8 +1,3 @@
-// TODO: This file, as a whole, needs a little skim-through to clear things up, sprinkle a little
-//       documentation here and there, and also to make the test coverage 100%.
-//       It, most importantly, lacks IPv6 support, if it's not altogether messy and unreliable
-//       (hint: it is).
-
 package mainline
 
 import (
