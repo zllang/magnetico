@@ -128,12 +128,13 @@ func (cps CompactPeers) MarshalBinary() (ret []byte, err error) {
 	ret = []byte{}
 	for _, cp := range cps {
 		ip := cp.IP.To4()
+		partial := make([]byte, 6) // For IPv4
 		if ip == nil {
 			ip = cp.IP.To16()
+			partial = make([]byte, 18) // For IPv6
 		}
-		partial := make([]byte, len(ip)+2)
-		copy(ret, ip)
-		binary.BigEndian.PutUint16(ret[len(ip):], uint16(cp.Port))
+		copy(partial, ip)
+		binary.BigEndian.PutUint16(partial[len(ip):], uint16(cp.Port))
 		ret = append(ret, partial...)
 	}
 	return

@@ -204,6 +204,7 @@ var codecTest_validInstances = []struct {
 
 func TestUnmarshal(t *testing.T) {
 	t.Parallel()
+
 	for i, instance := range codecTest_validInstances {
 		msg := Message{}
 		err := bencode.Unmarshal(instance.data, &msg)
@@ -220,6 +221,7 @@ func TestUnmarshal(t *testing.T) {
 
 func TestMarshal(t *testing.T) {
 	t.Parallel()
+
 	for i, instance := range codecTest_validInstances {
 		data, err := bencode.Marshal(instance.msg)
 		if err != nil {
@@ -320,6 +322,8 @@ func TestUnmarshalCompactPeers(t *testing.T) {
 }
 
 func TestUnmarshalBinary(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		bytes   []byte
@@ -351,6 +355,74 @@ func TestUnmarshalBinary(t *testing.T) {
 			cp := &CompactPeer{}
 			if err := cp.UnmarshalBinary(tt.bytes); (err != nil) != tt.wantErr {
 				t.Errorf("CompactPeer.UnmarshalBinary() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestMarshalBinary(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		compactPeers CompactPeers
+		wantBytes    []byte
+		wantErr      bool
+	}{
+		{
+			name:         "Empty CompactPeers",
+			compactPeers: CompactPeers{},
+			wantBytes:    []byte{},
+			wantErr:      false,
+		},
+		{
+			name: "Single CompactPeer with IPv4",
+			compactPeers: CompactPeers{
+				{
+					IP:   net.IPv4(127, 0, 0, 1),
+					Port: 443,
+				},
+			},
+			wantBytes: []byte{127, 0, 0, 1, 1, 187},
+			wantErr:   false,
+		},
+		{
+			name: "Single CompactPeer with IPv6",
+			compactPeers: CompactPeers{
+				{
+					IP:   net.ParseIP("::1"),
+					Port: 123,
+				},
+			},
+			wantBytes: []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 123},
+			wantErr:   false,
+		},
+		{
+			name: "Multiple CompactPeers",
+			compactPeers: CompactPeers{
+				{
+					IP:   net.IPv4(127, 0, 0, 1),
+					Port: 443,
+				},
+				{
+					IP:   net.ParseIP("::1"),
+					Port: 123,
+				},
+			},
+			wantBytes: []byte{127, 0, 0, 1, 1, 187, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 123},
+			wantErr:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotBytes, err := tt.compactPeers.MarshalBinary()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("MarshalBinary() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotBytes, tt.wantBytes) {
+				t.Errorf("MarshalBinary() = %v, want %v", gotBytes, tt.wantBytes)
 			}
 		})
 	}
