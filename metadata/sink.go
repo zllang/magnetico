@@ -135,18 +135,15 @@ func (ms *Sink) onLeechError(infoHash [20]byte, err error) {
 	ms.incomingInfoHashesMx.Lock()
 	defer ms.incomingInfoHashesMx.Unlock()
 
-	if peerAddrs, ok := ms.incomingInfoHashes[infoHash]; ok {
-		if len(peerAddrs) == 0 {
-			ms.delete(infoHash)
-			return
-		}
-
-		peer := peerAddrs[0]
-		ms.incomingInfoHashes[infoHash] = peerAddrs[1:]
+	if len(ms.incomingInfoHashes[infoHash]) > 0 {
+		peer := ms.incomingInfoHashes[infoHash][0]
+		ms.incomingInfoHashes[infoHash] = ms.incomingInfoHashes[infoHash][1:]
 		go NewLeech(infoHash, &peer, ms.PeerID, LeechEventHandlers{
 			OnSuccess: ms.flush,
 			OnError:   ms.onLeechError,
 		}).Do(time.Now().Add(ms.deadline))
+	} else {
+		ms.delete(infoHash)
 	}
 }
 
