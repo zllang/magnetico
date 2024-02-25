@@ -80,12 +80,15 @@ func TestSockaddrToUDPAddr(t *testing.T) {
 			},
 		},
 		{
-			name: "IPv6 with invalid IP",
+			name: "IPv6 with valid IP:Port",
 			sockAddr: &unix.SockaddrInet6{
-				Addr: [16]byte{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-				Port: 9090,
+				Addr: [16]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+				Port: 8080,
 			},
-			want: nil,
+			want: &net.UDPAddr{
+				IP:   []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+				Port: 8080,
+			},
 		},
 		{
 			name: "IPv6 with invalid ZoneId",
@@ -94,7 +97,10 @@ func TestSockaddrToUDPAddr(t *testing.T) {
 				Port:   8080,
 				ZoneId: 12345,
 			},
-			want: nil,
+			want: &net.UDPAddr{
+				IP:   []byte{32, 1, 72, 96, 72, 96, 0, 0, 0, 0, 0, 0, 0, 0, 136, 136},
+				Port: 8080,
+			},
 		},
 	}
 
@@ -105,37 +111,6 @@ func TestSockaddrToUDPAddr(t *testing.T) {
 			got := util.SockaddrToUDPAddr(test.sockAddr)
 			if !reflect.DeepEqual(got, test.want) {
 				t.Errorf("SockaddrToUDPAddr() = %v, want %v", got, test.want)
-			}
-		})
-	}
-}
-
-func TestIsValidIPv6(t *testing.T) {
-	t.Parallel()
-	var tests = []struct {
-		ip   string
-		want bool
-	}{
-		{
-			ip:   "2001:4860:4860::8888",
-			want: true,
-		},
-		{
-			ip:   "192.0.2.1",
-			want: false,
-		},
-		{
-			ip:   "299.0.2.1",
-			want: false,
-		},
-	}
-
-	for _, tt := range tests {
-		test := tt
-		t.Run(test.ip, func(t *testing.T) {
-			t.Parallel()
-			if got := util.IsValidIPv6(test.ip); got != test.want {
-				t.Errorf("IsValidIPv6() = %v, want %v", got, test.want)
 			}
 		})
 	}

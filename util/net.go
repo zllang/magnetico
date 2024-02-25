@@ -37,10 +37,6 @@ func SockaddrToUDPAddr(sockAddr unix.Sockaddr) *net.UDPAddr {
 		}
 
 	case *unix.SockaddrInet6:
-		if !IsValidIPv6(string(typedSocketAddr.Addr[:])) {
-			return nil
-		}
-
 		return &net.UDPAddr{
 			IP:   typedSocketAddr.Addr[:],
 			Port: typedSocketAddr.Port,
@@ -49,14 +45,6 @@ func SockaddrToUDPAddr(sockAddr unix.Sockaddr) *net.UDPAddr {
 	default:
 		return nil
 	}
-}
-
-func IsValidIPv6(ip string) bool {
-	parsedIP := net.ParseIP(ip)
-	if parsedIP == nil || parsedIP.To4() != nil {
-		return false
-	}
-	return true
 }
 
 func GetZone(zoneID uint32) (zone string) {
