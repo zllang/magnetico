@@ -1,19 +1,22 @@
 package dht
 
 import (
+	"math/rand"
 	"net"
 	"reflect"
+	"strconv"
 	"testing"
 	"time"
+
+	"github.com/tgragnato/magnetico/dht/mainline"
 )
 
 const (
 	ChanSize       = 20
 	MaxNeighbours  = 10
-	ManagerAddress = "0.0.0.0:2024"
+	ManagerAddress = "127.0.0.1"
 	PeerIP         = "192.168.1.1"
-	PeerPort       = 6931
-	DefaultTimeOut = 1 * time.Second
+	DefaultTimeOut = time.Second
 )
 
 type TestResult struct {
@@ -31,11 +34,17 @@ func (tr *TestResult) PeerAddrs() []net.TCPAddr {
 
 func TestChannelOutput(t *testing.T) {
 	t.Parallel()
-	manager := NewManager([]string{ManagerAddress}, DefaultTimeOut, MaxNeighbours)
+
+	address := ManagerAddress + ":" + strconv.Itoa(rand.Intn(65535)+1)
+	manager := NewManager([]string{address}, time.Second, MaxNeighbours)
+	peerPort := rand.Intn(65535) + 1
 
 	result := &TestResult{
-		infoHash:  [20]byte{255},
-		peerAddrs: []net.TCPAddr{{IP: net.ParseIP(PeerIP), Port: PeerPort, Zone: ""}},
+		infoHash: [20]byte{255},
+		peerAddrs: []net.TCPAddr{{
+			IP:   net.ParseIP(PeerIP),
+			Port: peerPort,
+		}},
 	}
 	outputChan := make(chan Result, ChanSize)
 	manager.output = outputChan
@@ -45,4 +54,33 @@ func TestChannelOutput(t *testing.T) {
 	if !reflect.DeepEqual(receivedResult, result) {
 		t.Errorf("\nReceived result %v, \nExpected result %v", receivedResult, result)
 	}
+
+	manager.Terminate()
+}
+
+func TestOnIndexingResult(t *testing.T) {
+	t.Parallel()
+
+	address := ManagerAddress + ":" + strconv.Itoa(rand.Intn(65535)+1)
+	manager := NewManager([]string{address}, DefaultTimeOut, MaxNeighbours)
+
+	result := mainline.IndexingResult{}
+	outputChan := make(chan Result, ChanSize)
+	manager.output = outputChan
+
+	for i := 0; i < ChanSize; i++ {
+		manager.onIndexingResult(result)
+	}
+
+	// Verify that the result is sent to the output channel
+	select {
+	case receivedResult := <-outputChan:
+		if !reflect.DeepEqual(receivedResult, result) {
+			t.Errorf("\nReceived result %v, \nExpected result %v", receivedResult, result)
+		}
+	default:
+		t.Error("Expected result not received")
+	}
+
+	manager.Terminate()
 }
