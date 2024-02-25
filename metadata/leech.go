@@ -241,7 +241,7 @@ func (l *Leech) readUmMessage() ([]byte, error) {
 func (l *Leech) connect(deadline time.Time) error {
 	var err error
 
-	x, err := net.DialTimeout("tcp4", l.peerAddr.String(), 1*time.Second)
+	x, err := net.DialTimeout("tcp", l.peerAddr.String(), time.Second)
 	if err != nil {
 		return errors.New("dial " + err.Error())
 	}
