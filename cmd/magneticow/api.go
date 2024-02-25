@@ -289,7 +289,6 @@ func apiFileList(w http.ResponseWriter, r *http.Request) {
 func apiStatistics(w http.ResponseWriter, r *http.Request) {
 	from := r.URL.Query().Get("from")
 
-	// TODO: use gorilla?
 	var n int64
 	nStr := r.URL.Query().Get("n")
 	if nStr == "" {
