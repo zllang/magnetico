@@ -290,7 +290,10 @@ func (p *Protocol) onMessage(msg *Message, addr *net.UDPAddr) {
 }
 
 func (p *Protocol) SendMessage(msg *Message, addr *net.UDPAddr) {
-	p.transport.WriteMessages(msg, addr)
+	err := p.transport.WriteMessages(msg, addr)
+	if err != nil {
+		log.Printf("Error sending message to %s: %v", addr.String(), err)
+	}
 }
 
 func NewPingQuery(id []byte) *Message {
