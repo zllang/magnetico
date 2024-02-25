@@ -2,11 +2,11 @@ package mainline
 
 import (
 	"bytes"
+	"errors"
 	"log"
 	"net"
 	"sort"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -62,9 +62,6 @@ func NewTransport(laddr string, onMessage func(*Message, *net.UDPAddr), onConges
 	if err != nil {
 		log.Panicf("Could not resolve the UDP address for the trawler! %v", err)
 	}
-	if t.laddr.IP.To4() == nil {
-		log.Panicln("IP address is not IPv4!")
-	}
 
 	t.stats = &transportStats{
 		sentPorts: make(map[string]int),
@@ -92,17 +89,34 @@ func (t *Transport) Start() {
 	}
 	t.started = true
 
-	var err error
-	t.fd, err = unix.Socket(unix.SOCK_DGRAM, unix.AF_INET, 0)
-	if err != nil {
-		log.Fatalf("Could NOT create a UDP socket! %v", err)
-	}
+	if ip4 := t.laddr.IP.To4(); ip4 != nil {
+		var err error
+		t.fd, err = unix.Socket(unix.AF_INET, unix.SOCK_DGRAM, 0)
+		if err != nil {
+			log.Fatalf("Could NOT create a UDP socket! %v", err)
+		}
 
-	var ip [4]byte
-	copy(ip[:], t.laddr.IP.To4())
-	err = unix.Bind(t.fd, &unix.SockaddrInet4{Addr: ip, Port: t.laddr.Port})
-	if err != nil {
-		log.Fatalf("Could NOT bind the socket! %v", err)
+		var ip [4]byte
+		copy(ip[:], ip4)
+		err = unix.Bind(t.fd, &unix.SockaddrInet4{Addr: ip, Port: t.laddr.Port})
+		if err != nil {
+			log.Fatalf("Could NOT bind the socket! %v", err)
+		}
+
+	} else if ip6 := t.laddr.IP.To16(); ip6 != nil {
+		var err error
+		t.fd, err = unix.Socket(unix.AF_INET6, unix.SOCK_DGRAM, 0)
+		if err != nil {
+			log.Fatalf("Could NOT create a UDP socket! %v", err)
+		}
+		var ip [16]byte
+		copy(ip[:], ip6)
+		err = unix.Bind(t.fd, &unix.SockaddrInet6{Addr: ip, Port: t.laddr.Port})
+		if err != nil {
+			log.Fatalf("Could NOT bind the socket! %v", err)
+		}
+	} else {
+		log.Panicln("Could NOT determine the IP version of the address for the trawler!")
 	}
 
 	go t.printStats()
@@ -273,21 +287,21 @@ func (t *Transport) printStats() {
 	}
 }
 
-func (t *Transport) WriteMessages(msg *Message, addr *net.UDPAddr) {
+func (t *Transport) WriteMessages(msg *Message, addr *net.UDPAddr) error {
 	//get ticket
 	t.throttleTicketsChannel <- struct{}{}
 
 	data, err := bencode.Marshal(msg)
 	if err != nil {
-		log.Panicln("Could NOT marshal an outgoing message! (Programmer error.)")
+		return errors.New("could not marshal an outgoing message! (programmer error)")
 	}
 	addrSA := util.NetAddrToSockaddr(addr)
 	if addrSA == nil {
-		return
+		return errors.New("could not convert the udp address to a sockaddr")
 	}
+
 	t.stats.Lock()
-	a := strings.Split(addr.String(), ":")[1]
-	t.stats.sentPorts[a]++
+	t.stats.sentPorts[strconv.Itoa(addr.Port)]++
 	t.stats.totalSend++
 	t.stats.Unlock()
 
@@ -311,7 +325,7 @@ func (t *Transport) WriteMessages(msg *Message, addr *net.UDPAddr) {
 		if t.onCongestion != nil {
 			t.onCongestion()
 		}
-	} else if err != nil {
-		log.Printf("Could NOT write an UDP packet! %v", err)
+		return nil
 	}
+	return err
 }
