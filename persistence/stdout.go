@@ -25,9 +25,6 @@ func (s *stdout) Engine() databaseEngine {
 func (s *stdout) DoesTorrentExist(infoHash []byte) (bool, error) {
 	// Always say that "No the torrent does not exist" because we do not have
 	// a way to know if we have seen it before or not.
-	// TODO:
-	// A possible improvement would be using bloom filters (with low false positive
-	// probabilities) to apply some reasonable filtering.
 	return false, nil
 }
 
