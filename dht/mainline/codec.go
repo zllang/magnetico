@@ -207,17 +207,24 @@ func (cnis *CompactNodeInfos) UnmarshalBencode(b []byte) (err error) {
 }
 
 func UnmarshalCompactNodeInfos(b []byte) (ret []CompactNodeInfo, err error) {
-	if len(b)%26 != 0 {
-		err = fmt.Errorf("compact node is not a multiple of 26")
+	if len(b)%38 != 0 && len(b)%26 != 0 {
+		err = fmt.Errorf("compact node is not a multiple of 26 (IPv4) or 38 (IPv6)")
 		return
 	}
 
-	num := len(b) / 26
+	var nodeSize int
+	if len(b)%38 == 0 {
+		nodeSize = 38
+	} else {
+		nodeSize = 26
+	}
+
+	num := len(b) / nodeSize
 	ret = make([]CompactNodeInfo, num)
 	for i := range make([]struct{}, num) {
-		off := i * 26
+		off := i * nodeSize
 		ret[i].ID = make([]byte, 20)
-		err = ret[i].UnmarshalBinary(b[off : off+26])
+		err = ret[i].UnmarshalBinary(b[off : off+nodeSize])
 		if err != nil {
 			return
 		}
