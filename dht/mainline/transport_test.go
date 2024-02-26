@@ -65,7 +65,7 @@ func TestWriteMessages(t *testing.T) {
 	t.Parallel()
 
 	transport := NewTransport(
-		net.JoinHostPort("::1", strconv.Itoa(rand.Intn(65535)+1)),
+		net.JoinHostPort("::1", strconv.Itoa(rand.Intn(64511)+1024)),
 		func(m *Message, u *net.UDPAddr) {},
 		func() {},
 	)

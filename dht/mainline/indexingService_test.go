@@ -37,7 +37,7 @@ func TestUint16BE(t *testing.T) {
 func TestBasicIndexingService(t *testing.T) {
 	t.Parallel()
 
-	randomPort := rand.Intn(65535) + 1
+	randomPort := rand.Intn(64511) + 1024
 	tests := []struct {
 		name          string
 		laddr         string

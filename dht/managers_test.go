@@ -35,9 +35,9 @@ func (tr *TestResult) PeerAddrs() []net.TCPAddr {
 func TestChannelOutput(t *testing.T) {
 	t.Parallel()
 
-	address := ManagerAddress + ":" + strconv.Itoa(rand.Intn(65535)+1)
+	address := ManagerAddress + ":" + strconv.Itoa(rand.Intn(64511)+1024)
 	manager := NewManager([]string{address}, time.Second, MaxNeighbours)
-	peerPort := rand.Intn(65535) + 1
+	peerPort := rand.Intn(64511) + 1024
 
 	result := &TestResult{
 		infoHash: [20]byte{255},
@@ -61,7 +61,7 @@ func TestChannelOutput(t *testing.T) {
 func TestOnIndexingResult(t *testing.T) {
 	t.Parallel()
 
-	address := ManagerAddress + ":" + strconv.Itoa(rand.Intn(65535)+1)
+	address := ManagerAddress + ":" + strconv.Itoa(rand.Intn(64511)+1024)
 	manager := NewManager([]string{address}, DefaultTimeOut, MaxNeighbours)
 
 	result := mainline.IndexingResult{}
