@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/anacrolix/torrent/bencode"
-	"github.com/tgragnato/magnetico/util"
 	"golang.org/x/sys/unix"
 )
 
@@ -21,7 +20,7 @@ var (
 )
 
 type Transport struct {
-	fd      int
+	conn    *net.UDPConn
 	laddr   *net.UDPAddr
 	started bool
 	buffer  []byte
@@ -89,34 +88,10 @@ func (t *Transport) Start() {
 	}
 	t.started = true
 
-	if ip4 := t.laddr.IP.To4(); ip4 != nil {
-		var err error
-		t.fd, err = unix.Socket(unix.AF_INET, unix.SOCK_DGRAM, 0)
-		if err != nil {
-			log.Fatalf("Could NOT create a UDP socket! %v", err)
-		}
-
-		var ip [4]byte
-		copy(ip[:], ip4)
-		err = unix.Bind(t.fd, &unix.SockaddrInet4{Addr: ip, Port: t.laddr.Port})
-		if err != nil {
-			log.Fatalf("Could NOT bind the socket! %v", err)
-		}
-
-	} else if ip6 := t.laddr.IP.To16(); ip6 != nil {
-		var err error
-		t.fd, err = unix.Socket(unix.AF_INET6, unix.SOCK_DGRAM, 0)
-		if err != nil {
-			log.Fatalf("Could NOT create a UDP socket! %v", err)
-		}
-		var ip [16]byte
-		copy(ip[:], ip6)
-		err = unix.Bind(t.fd, &unix.SockaddrInet6{Addr: ip, Port: t.laddr.Port})
-		if err != nil {
-			log.Fatalf("Could NOT bind the socket! %v", err)
-		}
-	} else {
-		log.Panicln("Could NOT determine the IP version of the address for the trawler!")
+	var err error
+	t.conn, err = net.ListenUDP("udp", t.laddr)
+	if err != nil {
+		log.Fatalf("Could NOT bind the socket! %v", err)
 	}
 
 	go t.printStats()
@@ -125,15 +100,14 @@ func (t *Transport) Start() {
 }
 
 func (t *Transport) Terminate() {
-	unix.Close(t.fd)
+	t.conn.Close()
 }
 
 // readMessages is a goroutine!
 func (t *Transport) readMessages() {
 	for {
-		n, fromSA, err := unix.Recvfrom(t.fd, t.buffer, 0)
-		if err == unix.EPERM || err == unix.ENOBUFS { // todo: are these errors possible for recvfrom?
-			log.Printf("READ CONGESTION! %v", err)
+		n, from, err := t.conn.ReadFromUDP(t.buffer)
+		if err == unix.EPERM || err == unix.ENOBUFS {
 			t.onCongestion()
 		} else if err != nil {
 			// Socket is probably closed
@@ -145,11 +119,6 @@ func (t *Transport) readMessages() {
 			 * zero-length datagrams. When such a datagram is received, the return value (n) is 0.
 			 */
 			continue
-		}
-
-		from := util.SockaddrToUDPAddr(fromSA)
-		if from == nil {
-			log.Panicln("dht mainline transport SockaddrToUDPAddr: nil")
 		}
 
 		var msg Message
@@ -295,17 +264,14 @@ func (t *Transport) WriteMessages(msg *Message, addr *net.UDPAddr) error {
 	if err != nil {
 		return errors.New("could not marshal an outgoing message! (programmer error)")
 	}
-	addrSA := util.NetAddrToSockaddr(addr)
-	if addrSA == nil {
-		return errors.New("could not convert the udp address to a sockaddr")
-	}
 
 	t.stats.Lock()
 	t.stats.sentPorts[strconv.Itoa(addr.Port)]++
 	t.stats.totalSend++
 	t.stats.Unlock()
 
-	err = unix.Sendto(t.fd, data, 0, addrSA)
+	_, err = t.conn.WriteToUDP(data, addr)
+
 	if err == unix.EPERM || err == unix.ENOBUFS {
 		/*   EPERM (errno: 1) is kernel's way of saying that "you are far too fast, chill". It is
 		 * also likely that we have received a ICMP source quench packet (meaning, that we *really*
