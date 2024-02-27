@@ -1,7 +1,6 @@
 package metadata
 
 import (
-	"crypto/rand"
 	"log"
 	"net"
 	"sync"
@@ -41,28 +40,6 @@ type Sink struct {
 
 	terminated  bool
 	termination chan interface{}
-}
-
-func randomID() []byte {
-	prefix := []byte(PeerPrefix)
-	var rando []byte
-
-	peace := PeerIDLength - len(prefix)
-	for i := peace; i > 0; i-- {
-		rando = append(rando, randomDigit())
-	}
-
-	return append(prefix, rando...)
-}
-
-// randomDigit as byte (ASCII code range 0-9 digits)
-func randomDigit() byte {
-	b := make([]byte, 1)
-	_, err := rand.Read(b)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return (b[0] % 10) + '0'
 }
 
 func NewSink(deadline time.Duration, maxNLeeches int) *Sink {

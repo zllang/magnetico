@@ -15,7 +15,6 @@ import (
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/tgragnato/magnetico/persistence"
-	"github.com/tgragnato/magnetico/util"
 )
 
 const MAX_METADATA_SIZE = 10 * 1024 * 1024
@@ -388,7 +387,7 @@ func (l *Leech) Do(deadline time.Time) {
 		l.OnError(errors.New("unmarshal info " + err.Error()))
 		return
 	}
-	err = util.ValidateInfo(info)
+	err = validateInfo(info)
 	if err != nil {
 		l.OnError(errors.New("validateInfo " + err.Error()))
 		return
@@ -410,7 +409,7 @@ func (l *Leech) Do(deadline time.Time) {
 		}
 	}
 
-	totalSize, err := util.TotalSize(files)
+	totalSize, err := totalSize(files)
 	if err != nil {
 		l.OnError(err)
 		return
@@ -433,27 +432,4 @@ func (l *Leech) readExactly(n uint) ([]byte, error) {
 
 func (l *Leech) OnError(err error) {
 	l.ev.OnError(l.infoHash, err)
-}
-
-func toBigEndian(i uint, n int) []byte {
-	b := make([]byte, n)
-	switch n {
-	case 1:
-		b = []byte{byte(i)}
-
-	case 2:
-		binary.BigEndian.PutUint16(b, uint16(i))
-
-	case 4:
-		binary.BigEndian.PutUint32(b, uint32(i))
-
-	default:
-		panic("n must be 1, 2, or 4!")
-	}
-
-	if len(b) != n {
-		panic(fmt.Sprintf("postcondition failed: len(b) != n in intToBigEndian (i %d, n %d, len b %d, b %s)", i, n, len(b), b))
-	}
-
-	return b
 }
