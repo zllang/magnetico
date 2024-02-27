@@ -229,11 +229,14 @@ func TestNewProtocol(t *testing.T) {
 	}()
 
 	service := new(IndexingService)
-	NewProtocol("0.0.0.0:0", ProtocolEventHandlers{
-		OnFindNodeResponse:         service.onFindNodeResponse,
-		OnGetPeersResponse:         service.onGetPeersResponse,
-		OnSampleInfohashesResponse: service.onSampleInfohashesResponse,
+	protocol := NewProtocol("0.0.0.0:0", ProtocolEventHandlers{
+		OnFindNodeResponse:           service.onFindNodeResponse,
+		OnGetPeersResponse:           service.onGetPeersResponse,
+		OnSampleInfohashesResponse:   service.onSampleInfohashesResponse,
+		OnPingORAnnouncePeerResponse: service.onPingORAnnouncePeerResponse,
 	})
+	protocol.Start()
+	protocol.Terminate()
 }
 
 func TestProtocol_Start(t *testing.T) {
@@ -246,9 +249,10 @@ func TestProtocol_Start(t *testing.T) {
 
 	service := new(IndexingService)
 	protocol := NewProtocol("0.0.0.0:0", ProtocolEventHandlers{
-		OnFindNodeResponse:         service.onFindNodeResponse,
-		OnGetPeersResponse:         service.onGetPeersResponse,
-		OnSampleInfohashesResponse: service.onSampleInfohashesResponse,
+		OnFindNodeResponse:           service.onFindNodeResponse,
+		OnGetPeersResponse:           service.onGetPeersResponse,
+		OnSampleInfohashesResponse:   service.onSampleInfohashesResponse,
+		OnPingORAnnouncePeerResponse: service.onPingORAnnouncePeerResponse,
 	})
 	protocol.Start()
 	protocol.Start()
@@ -264,9 +268,10 @@ func TestProtocol_Terminate(t *testing.T) {
 
 	service := new(IndexingService)
 	protocol := NewProtocol("0.0.0.0:0", ProtocolEventHandlers{
-		OnFindNodeResponse:         service.onFindNodeResponse,
-		OnGetPeersResponse:         service.onGetPeersResponse,
-		OnSampleInfohashesResponse: service.onSampleInfohashesResponse,
+		OnFindNodeResponse:           service.onFindNodeResponse,
+		OnGetPeersResponse:           service.onGetPeersResponse,
+		OnSampleInfohashesResponse:   service.onSampleInfohashesResponse,
+		OnPingORAnnouncePeerResponse: service.onPingORAnnouncePeerResponse,
 	})
 	protocol.Terminate()
 	protocol.Terminate()

@@ -54,9 +54,10 @@ func NewIndexingService(laddr string, interval time.Duration, maxNeighbors uint,
 	service.protocol = NewProtocol(
 		laddr,
 		ProtocolEventHandlers{
-			OnFindNodeResponse:         service.onFindNodeResponse,
-			OnGetPeersResponse:         service.onGetPeersResponse,
-			OnSampleInfohashesResponse: service.onSampleInfohashesResponse,
+			OnFindNodeResponse:           service.onFindNodeResponse,
+			OnGetPeersResponse:           service.onGetPeersResponse,
+			OnSampleInfohashesResponse:   service.onSampleInfohashesResponse,
+			OnPingORAnnouncePeerResponse: service.onPingORAnnouncePeerResponse,
 		},
 	)
 	service.nodeID = make([]byte, 20)
@@ -91,7 +92,6 @@ func (is *IndexingService) index() {
 		if routingTableLen == 0 {
 			is.bootstrap()
 		} else {
-			//TODO
 			is.findNeighbors()
 			is.routingTableMutex.Lock()
 			is.routingTable = make(map[string]*net.UDPAddr)
@@ -273,4 +273,11 @@ func toBigEndianBytes(v uint16) [2]byte {
 	var b [2]byte
 	binary.BigEndian.PutUint16(b[:], v)
 	return b
+}
+
+func (is *IndexingService) onPingORAnnouncePeerResponse(msg *Message, addr *net.UDPAddr) {
+	is.protocol.SendMessage(
+		NewAnnouncePeerResponse(msg.T, is.nodeID),
+		addr,
+	)
 }
