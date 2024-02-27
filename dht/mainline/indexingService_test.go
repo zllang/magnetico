@@ -46,23 +46,16 @@ func TestBasicIndexingService(t *testing.T) {
 		eventHandlers IndexingServiceEventHandlers
 	}{
 		{
-			name:          "Loopback Fixed",
-			laddr:         "127.0.0.1:12345",
-			interval:      500 * time.Millisecond,
-			maxNeighbors:  0,
-			eventHandlers: IndexingServiceEventHandlers{},
-		},
-		{
 			name:          "Loopback Random IPv4",
 			laddr:         net.JoinHostPort("127.0.0.1", strconv.Itoa(randomPort)),
-			interval:      500 * time.Second,
+			interval:      500 * time.Millisecond,
 			maxNeighbors:  0,
 			eventHandlers: IndexingServiceEventHandlers{},
 		},
 		{
 			name:          "Loopback Random IPv6",
 			laddr:         net.JoinHostPort("::1", strconv.Itoa(randomPort)),
-			interval:      500 * time.Second,
+			interval:      500 * time.Millisecond,
 			maxNeighbors:  0,
 			eventHandlers: IndexingServiceEventHandlers{},
 		},
@@ -74,6 +67,8 @@ func TestBasicIndexingService(t *testing.T) {
 				t.Error("NewIndexingService() = nil, wanted != nil")
 			}
 			is.Start()
+			time.Sleep(time.Second)
+			is.findNeighbors()
 			time.Sleep(time.Second)
 			is.Terminate()
 		})

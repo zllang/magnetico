@@ -1,17 +1,12 @@
 package mainline
 
 import (
-	"bytes"
 	"errors"
 	"log"
 	"net"
-	"sort"
-	"strconv"
-	"sync"
 	"time"
 
 	"github.com/anacrolix/torrent/bencode"
-	"golang.org/x/sys/unix"
 )
 
 var (
@@ -29,15 +24,12 @@ type Transport struct {
 	// successfully unmarshalled as a syntactically correct Message (but -of course- the checking
 	// the semantic correctness of the Message is left to Protocol).
 	onMessage func(*Message, *net.UDPAddr)
-	// OnCongestion
-	onCongestion func()
 
 	throttlingRate         int           //available messages per second. If <=0, it is considered disabled
 	throttleTicketsChannel chan struct{} //channel giving tickets (allowance) to make send a message
-	stats                  *transportStats
 }
 
-func NewTransport(laddr string, onMessage func(*Message, *net.UDPAddr), onCongestion func()) *Transport {
+func NewTransport(laddr string, onMessage func(*Message, *net.UDPAddr)) *Transport {
 	t := new(Transport)
 	/*   The field size sets a theoretical limit of 65,535 bytes (8 byte header + 65,527 bytes of
 	 * data) for a UDP datagram. However the actual limit for the data length, which is imposed by
@@ -52,7 +44,6 @@ func NewTransport(laddr string, onMessage func(*Message, *net.UDPAddr), onConges
 	 */
 	t.buffer = make([]byte, 65507)
 	t.onMessage = onMessage
-	t.onCongestion = onCongestion
 	t.throttleTicketsChannel = make(chan struct{})
 	t.SetThrottle(DefaultThrottleRate)
 
@@ -60,10 +51,6 @@ func NewTransport(laddr string, onMessage func(*Message, *net.UDPAddr), onConges
 	t.laddr, err = net.ResolveUDPAddr("udp", laddr)
 	if err != nil {
 		log.Panicf("Could not resolve the UDP address for the trawler! %v", err)
-	}
-
-	t.stats = &transportStats{
-		sentPorts: make(map[string]int),
 	}
 
 	return t
@@ -94,7 +81,6 @@ func (t *Transport) Start() {
 		log.Fatalf("Could NOT bind the socket! %v", err)
 	}
 
-	go t.printStats()
 	go t.readMessages()
 	go t.Throttle()
 }
@@ -107,10 +93,7 @@ func (t *Transport) Terminate() {
 func (t *Transport) readMessages() {
 	for {
 		n, from, err := t.conn.ReadFromUDP(t.buffer)
-		if err == unix.EPERM || err == unix.ENOBUFS {
-			t.onCongestion()
-		} else if err != nil {
-			// Socket is probably closed
+		if err != nil {
 			break
 		}
 
@@ -128,9 +111,6 @@ func (t *Transport) readMessages() {
 			continue
 		}
 
-		t.stats.Lock()
-		t.stats.totalRead++
-		t.stats.Unlock()
 		t.onMessage(&msg, from)
 	}
 }
@@ -182,80 +162,6 @@ func (t *Transport) Throttle() {
 	}
 }
 
-// statistics
-type transportStats struct {
-	sync.RWMutex
-	sentPorts map[string]int
-	totalSend int
-	totalRead int
-}
-
-func (ts *transportStats) Reset() {
-	ts.Lock()
-	defer ts.Unlock()
-	ts.sentPorts = make(map[string]int)
-	ts.totalSend = 0
-	ts.totalRead = 0
-}
-
-type statPortCount struct {
-	portNumber string
-	portCount  int
-}
-type statPortCounts []statPortCount
-
-func (s statPortCounts) Len() int {
-	return len(s)
-}
-func (s statPortCounts) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-func (s statPortCounts) Less(i, j int) bool {
-	return s[i].portCount > s[j].portCount
-}
-
-func (t *Transport) printStats() {
-	for {
-		time.Sleep(StatsPrintClock)
-		t.stats.RLock()
-		tempOrderedPorts := make(statPortCounts, 0, len(t.stats.sentPorts))
-		currentTotalSend := t.stats.totalSend
-		currentTotalRead := t.stats.totalRead
-		for port, count := range t.stats.sentPorts {
-			tempOrderedPorts = append(tempOrderedPorts, statPortCount{port, count})
-		}
-		t.stats.RUnlock()
-
-		sort.Sort(tempOrderedPorts)
-
-		mostUsedPortsBuffer := bytes.Buffer{}
-		sendRateBuffer := bytes.Buffer{}
-		readRateBuffer := bytes.Buffer{}
-
-		for i, pc := range tempOrderedPorts {
-			if i > 5 {
-				break
-			} else if i > 0 {
-				mostUsedPortsBuffer.WriteString(", ")
-			}
-
-			mostUsedPortsBuffer.WriteString(pc.portNumber)
-			mostUsedPortsBuffer.WriteString("(")
-			mostUsedPortsBuffer.WriteString(strconv.Itoa(pc.portCount))
-			mostUsedPortsBuffer.WriteString(")")
-		}
-
-		sendRateBuffer.WriteString(strconv.FormatFloat(float64(currentTotalSend)/StatsPrintClock.Seconds(), 'f', -1, 64))
-		sendRateBuffer.WriteString(" msg/s")
-
-		readRateBuffer.WriteString(strconv.FormatFloat(float64(currentTotalRead)/StatsPrintClock.Seconds(), 'f', -1, 64))
-		readRateBuffer.WriteString(" msg/s")
-
-		//finally, reset stats
-		t.stats.Reset()
-	}
-}
-
 func (t *Transport) WriteMessages(msg *Message, addr *net.UDPAddr) error {
 	//get ticket
 	t.throttleTicketsChannel <- struct{}{}
@@ -265,33 +171,6 @@ func (t *Transport) WriteMessages(msg *Message, addr *net.UDPAddr) error {
 		return errors.New("could not marshal an outgoing message! (programmer error)")
 	}
 
-	t.stats.Lock()
-	t.stats.sentPorts[strconv.Itoa(addr.Port)]++
-	t.stats.totalSend++
-	t.stats.Unlock()
-
 	_, err = t.conn.WriteToUDP(data, addr)
-
-	if err == unix.EPERM || err == unix.ENOBUFS {
-		/*   EPERM (errno: 1) is kernel's way of saying that "you are far too fast, chill". It is
-		 * also likely that we have received a ICMP source quench packet (meaning, that we *really*
-		 * need to slow down.
-		 *
-		 * Read more here: http://www.archivum.info/comp.protocols.tcp-ip/2009-05/00088/UDP-socket-amp-amp-sendto-amp-amp-EPERM.html
-		 *
-		 * >   Note On BSD systems (OS X, FreeBSD, etc.) flow control is not supported for
-		 * > DatagramProtocol, because send failures caused by writing too many packets cannot be
-		 * > detected easily. The socket always appears ‘ready’ and excess packets are dropped; an
-		 * > OSError with errno set to errno.ENOBUFS may or may not be raised; if it is raised, it
-		 * > will be reported to DatagramProtocol.error_received() but otherwise ignored.
-		 *
-		 * Source: https://docs.python.org/3/library/asyncio-protocol.html#flow-control-callbacks
-		 */
-		log.Printf("WRITE CONGESTION! %v", err)
-		if t.onCongestion != nil {
-			t.onCongestion()
-		}
-		return nil
-	}
 	return err
 }
