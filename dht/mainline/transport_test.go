@@ -68,6 +68,7 @@ func TestWriteMessages(t *testing.T) {
 		net.JoinHostPort("::1", strconv.Itoa(rand.Intn(64511)+1024)),
 		func(m *Message, u *net.UDPAddr) {},
 	)
+	transport.throttlingRate = 10
 	transport.Start()
 
 	tests := []struct {
