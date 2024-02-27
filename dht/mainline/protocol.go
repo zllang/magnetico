@@ -1,6 +1,7 @@
 package mainline
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/sha1"
 	"log"
@@ -171,7 +172,14 @@ func (p *Protocol) SendMessage(msg *Message, addr *net.UDPAddr) {
 }
 
 func NewPingQuery(id []byte) *Message {
-	panic("Not implemented yet!")
+	return &Message{
+		Y: "q",
+		T: []byte("aa"),
+		Q: "ping",
+		A: QueryArguments{
+			ID: id,
+		},
+	}
 }
 
 func NewFindNodeQuery(id []byte, target []byte) *Message {
@@ -199,7 +207,32 @@ func NewGetPeersQuery(id []byte, infoHash []byte) *Message {
 }
 
 func NewAnnouncePeerQuery(id []byte, implied_port bool, info_hash []byte, port uint16, token []byte) *Message {
-	panic("Not implemented yet!")
+	if implied_port {
+		return &Message{
+			Y: "q",
+			T: []byte("aa"),
+			Q: "announce_peer",
+			A: QueryArguments{
+				ID:          id,
+				ImpliedPort: int(port),
+				InfoHash:    info_hash,
+				Port:        int(port),
+				Token:       token,
+			},
+		}
+	}
+
+	return &Message{
+		Y: "q",
+		T: []byte("aa"),
+		Q: "announce_peer",
+		A: QueryArguments{
+			ID:       id,
+			InfoHash: info_hash,
+			Port:     int(port),
+			Token:    token,
+		},
+	}
 }
 
 func NewSampleInfohashesQuery(id []byte, t []byte, target []byte) *Message {
@@ -225,11 +258,26 @@ func NewPingResponse(t []byte, id []byte) *Message {
 }
 
 func NewFindNodeResponse(t []byte, id []byte, nodes []CompactNodeInfo) *Message {
-	panic("Not implemented yet!")
+	return &Message{
+		Y: "r",
+		T: t,
+		R: ResponseValues{
+			ID:    id,
+			Nodes: nodes,
+		},
+	}
 }
 
 func NewGetPeersResponseWithValues(t []byte, id []byte, token []byte, values []CompactPeer) *Message {
-	panic("Not implemented yet!")
+	return &Message{
+		Y: "r",
+		T: t,
+		R: ResponseValues{
+			ID:     id,
+			Token:  token,
+			Values: values,
+		},
+	}
 }
 
 func NewGetPeersResponseWithNodes(t []byte, id []byte, token []byte, nodes []CompactNodeInfo) *Message {
@@ -259,8 +307,9 @@ func (p *Protocol) CalculateToken(address net.IP) []byte {
 func (p *Protocol) VerifyToken(address net.IP, token []byte) bool {
 	p.tokenLock.Lock()
 	defer p.tokenLock.Unlock()
-	// TODO: implement VerifyToken()
-	panic("VerifyToken() not implemented yet!")
+	// Compare the provided token with the calculated token
+	calculatedToken := sha1.Sum(append(p.currentTokenSecret, address...))
+	return bytes.Equal(calculatedToken[:], token)
 }
 
 func (p *Protocol) updateTokenSecret() {
