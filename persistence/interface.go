@@ -8,8 +8,6 @@ import (
 	"net/url"
 )
 
-var NotImplementedError = errors.New("Function not implemented")
-
 type Database interface {
 	Engine() databaseEngine
 	DoesTorrentExist(infoHash []byte) (bool, error)
@@ -62,17 +60,12 @@ const (
 	Sqlite3 databaseEngine = iota + 1
 	Postgres
 	Cockroach
-	Stdout
 )
 
 type Statistics struct {
 	NDiscovered map[string]uint64 `json:"nDiscovered"`
 	NFiles      map[string]uint64 `json:"nFiles"`
 	TotalSize   map[string]uint64 `json:"totalSize"`
-
-	// All these slices below have the exact length equal to the Period.
-	//NDiscovered []uint64  `json:"nDiscovered"`
-
 }
 
 type File struct {
@@ -120,9 +113,6 @@ func MakeDatabase(rawURL string) (Database, error) {
 
 	case "cockroach":
 		return makeCockroachDatabase(url_)
-
-	case "stdout":
-		return makeStdoutDatabase(url_)
 
 	default:
 		return nil, fmt.Errorf("unknown URI scheme: `%s`", url_.Scheme)
