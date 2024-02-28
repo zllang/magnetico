@@ -356,21 +356,20 @@ func validatePingORannouncePeerResponseMessage(msg *Message) bool {
 }
 
 func validateFindNodeResponseMessage(msg *Message) bool {
-	// TODO: check nodes field
-	return len(msg.R.ID) == 20
+	return len(msg.R.ID) == 20 &&
+		len(msg.R.Nodes) >= 0
 }
 
 func validateGetPeersResponseMessage(msg *Message) bool {
 	return len(msg.R.ID) == 20 &&
-		len(msg.R.Token) > 0
-
-	// TODO: check for values or nodes
+		len(msg.R.Token) > 0 &&
+		(len(msg.R.Values) > 0 || len(msg.R.Nodes) >= 0)
 }
 
 func validateSampleInfohashesResponseMessage(msg *Message) bool {
 	return len(msg.R.ID) == 20 &&
 		msg.R.Interval >= 0 &&
-		// TODO: check for nodes
+		len(msg.R.Nodes) >= 0 &&
 		msg.R.Num >= 0 &&
 		len(msg.R.Samples)%20 == 0
 }
