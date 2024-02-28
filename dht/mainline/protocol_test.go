@@ -234,6 +234,13 @@ func TestNewFindNodeQuery(t *testing.T) {
 	}
 }
 
+func TestNewFindNodeResponse(t *testing.T) {
+	t.Parallel()
+	if !validateFindNodeResponseMessage(NewFindNodeResponse([]byte("tt"), []byte("qwertyuopasdfghjklzx"), []CompactNodeInfo{})) {
+		t.Errorf("NewFindNodeResponse returned an invalid message!")
+	}
+}
+
 func TestNewPingQuery(t *testing.T) {
 	t.Parallel()
 	if !validatePingQueryMessage(NewPingQuery([]byte("qwertyuopasdfghjklzx"))) {
@@ -259,6 +266,30 @@ func TestNewGetPeersResponseWithNodes(t *testing.T) {
 	t.Parallel()
 	if !validateGetPeersResponseMessage(NewGetPeersResponseWithNodes([]byte("tt"), []byte("qwertyuopasdfghjklzx"), []byte("token"), []CompactNodeInfo{})) {
 		t.Errorf("NewGetPeersResponseWithNodes returned an invalid message!")
+	}
+}
+
+func TestNewGetPeersResponseWithValues(t *testing.T) {
+	t.Parallel()
+	if !validateGetPeersResponseMessage(NewGetPeersResponseWithValues([]byte("tt"), []byte("qwertyuopasdfghjklzx"), []byte("token"), []CompactPeer{})) {
+		t.Errorf("NewGetPeersResponseWithValues returned an invalid message!")
+	}
+}
+
+func TestNewAnnouncePeerQuery(t *testing.T) {
+	t.Parallel()
+	if !validateAnnouncePeerQueryMessage(NewAnnouncePeerQuery([]byte("qwertyuopasdfghjklzx"), false, []byte("xzlkjhgfdsapouytrewq"), 6881, []byte("token"))) {
+		t.Errorf("NewAnnouncePeerQuery returned an invalid message!")
+	}
+	if !validateAnnouncePeerQueryMessage(NewAnnouncePeerQuery([]byte("qwertyuopasdfghjklzx"), true, []byte("xzlkjhgfdsapouytrewq"), 6881, []byte("token"))) {
+		t.Errorf("NewAnnouncePeerQuery returned an invalid message!")
+	}
+}
+
+func TestNewSampleInfohashesQuery(t *testing.T) {
+	t.Parallel()
+	if !validateSampleInfohashesQueryMessage(NewSampleInfohashesQuery([]byte("qwertyuopasdfghjklzx"), []byte("tt"), []byte("xzlkjhgfdsapouytrewq"))) {
+		t.Errorf("NewSampleInfohashesQuery returned an invalid message!")
 	}
 }
 
