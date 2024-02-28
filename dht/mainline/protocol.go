@@ -11,11 +11,11 @@ import (
 )
 
 type Protocol struct {
-	previousTokenSecret, currentTokenSecret []byte
-	tokenLock                               sync.Mutex
-	transport                               *Transport
-	eventHandlers                           ProtocolEventHandlers
-	started                                 bool
+	tokenSecret   []byte
+	tokenLock     sync.Mutex
+	transport     *Transport
+	eventHandlers ProtocolEventHandlers
+	started       bool
 }
 
 type ProtocolEventHandlers struct {
@@ -36,14 +36,6 @@ func NewProtocol(laddr string, eventHandlers ProtocolEventHandlers) (p *Protocol
 	p = new(Protocol)
 	p.eventHandlers = eventHandlers
 	p.transport = NewTransport(laddr, p.onMessage)
-
-	p.currentTokenSecret, p.previousTokenSecret = make([]byte, 20), make([]byte, 20)
-	_, err := rand.Read(p.currentTokenSecret)
-	if err != nil {
-		log.Fatalln("Could NOT generate random bytes for token secret!")
-	}
-	copy(p.previousTokenSecret, p.currentTokenSecret)
-
 	return
 }
 
@@ -54,7 +46,13 @@ func (p *Protocol) Start() {
 	p.started = true
 
 	p.transport.Start()
-	go p.updateTokenSecret()
+	p.updateTokenSecret()
+
+	go func() {
+		for range time.NewTicker(10 * time.Minute).C {
+			p.updateTokenSecret()
+		}
+	}()
 }
 
 func (p *Protocol) Terminate() {
@@ -300,7 +298,7 @@ func NewAnnouncePeerResponse(t []byte, id []byte) *Message {
 func (p *Protocol) CalculateToken(address net.IP) []byte {
 	p.tokenLock.Lock()
 	defer p.tokenLock.Unlock()
-	sum := sha1.Sum(append(p.currentTokenSecret, address...))
+	sum := sha1.Sum(append(p.tokenSecret, address...))
 	return sum[:]
 }
 
@@ -308,20 +306,16 @@ func (p *Protocol) VerifyToken(address net.IP, token []byte) bool {
 	p.tokenLock.Lock()
 	defer p.tokenLock.Unlock()
 	// Compare the provided token with the calculated token
-	calculatedToken := sha1.Sum(append(p.currentTokenSecret, address...))
+	calculatedToken := sha1.Sum(append(p.tokenSecret, address...))
 	return bytes.Equal(calculatedToken[:], token)
 }
 
 func (p *Protocol) updateTokenSecret() {
-	for range time.NewTicker(10 * time.Minute).C {
-		p.tokenLock.Lock()
-		copy(p.previousTokenSecret, p.currentTokenSecret)
-		_, err := rand.Read(p.currentTokenSecret)
-		if err != nil {
-			p.tokenLock.Unlock()
-			log.Fatalf("Could NOT generate random bytes for token secret! %v", err)
-		}
-		p.tokenLock.Unlock()
+	p.tokenLock.Lock()
+	defer p.tokenLock.Unlock()
+	_, err := rand.Read(p.tokenSecret)
+	if err != nil {
+		log.Fatalf("Could NOT generate random bytes for token secret! %v", err)
 	}
 }
 
