@@ -186,7 +186,35 @@ var protocolTest_validInstances = []struct {
 			},
 		},
 	},
-	// TODO: Add announce_peer Query with optional `implied_port` argument.
+	// announce_peer Query with optional `implied_port` argument:
+	{
+		validator: validateAnnouncePeerQueryMessage,
+		msg: Message{
+			T: []byte("aa"),
+			Y: "q",
+			Q: "announce_peer",
+			A: QueryArguments{
+				ID:          []byte("abcdefghij0123456789"),
+				InfoHash:    []byte("mnopqrstuvwxyz123456"),
+				ImpliedPort: 6881,
+				Port:        6881,
+				Token:       []byte("aoeusnth"),
+			},
+		},
+	},
+	// sample_infohashes Query
+	{
+		validator: validateSampleInfohashesQueryMessage,
+		msg: Message{
+			T: []byte("aa"),
+			Y: "q",
+			Q: "sample_infohashes",
+			A: QueryArguments{
+				ID:     []byte("abcdefghij0123456789"),
+				Target: []byte("mnopqrstuvwxyz123456"),
+			},
+		},
+	},
 }
 
 func TestValidators(t *testing.T) {
@@ -206,10 +234,24 @@ func TestNewFindNodeQuery(t *testing.T) {
 	}
 }
 
+func TestNewPingQuery(t *testing.T) {
+	t.Parallel()
+	if !validatePingQueryMessage(NewPingQuery([]byte("qwertyuopasdfghjklzx"))) {
+		t.Errorf("NewPingResponse returned an invalid message!")
+	}
+}
+
 func TestNewPingResponse(t *testing.T) {
 	t.Parallel()
-	if !validatePingORannouncePeerResponseMessage(NewPingResponse([]byte("tt"), []byte("qwertyuopasdfghjklzx"))) {
+	if !validatePingORannouncePeerResponseMessage(NewAnnouncePeerResponse([]byte("tt"), []byte("qwertyuopasdfghjklzx"))) {
 		t.Errorf("NewPingResponse returned an invalid message!")
+	}
+}
+
+func TestNewGetPeersQuery(t *testing.T) {
+	t.Parallel()
+	if !validateGetPeersQueryMessage(NewGetPeersQuery([]byte("qwertyuopasdfghjklzx"), []byte("xzlkjhgfdsapouytrewq"))) {
+		t.Errorf("NewGetPeersQuery returned an invalid message!")
 	}
 }
 
