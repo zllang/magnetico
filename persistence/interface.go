@@ -108,11 +108,8 @@ func MakeDatabase(rawURL string) (Database, error) {
 
 	switch url_.Scheme {
 
-	case "postgres":
+	case "postgres", "cockroach":
 		return makePostgresDatabase(url_)
-
-	case "cockroach":
-		return makeCockroachDatabase(url_)
 
 	default:
 		return nil, fmt.Errorf("unknown URI scheme: `%s`", url_.Scheme)

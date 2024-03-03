@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/url"
 	"strconv"
+	"strings"
 	"text/template"
 	"time"
 	"unicode/utf8"
@@ -24,15 +25,21 @@ type postgresDatabase struct {
 func makePostgresDatabase(url_ *url.URL) (Database, error) {
 	db := new(postgresDatabase)
 
-	schema := url_.Query().Get("schema")
-	if schema == "" {
+	if url_.Scheme == "cockroach" {
+		url_.Scheme = "postgres"
+	}
+
+	query := url_.Query()
+	if schema := query.Get("schema"); schema == "" {
 		db.schema = "magneticod"
-		url_.Query().Set("search_path", "magneticod")
+		query.Set("search_path", "magneticod")
 	} else {
 		db.schema = schema
-		url_.Query().Set("search_path", schema)
+		query := url_.Query()
+		query.Set("search_path", schema)
 	}
-	url_.Query().Del("schema")
+	query.Del("schema")
+	url_.RawQuery = query.Encode()
 
 	var err error
 	db.conn, err = sql.Open("pgx", url_.String())
@@ -83,6 +90,7 @@ func (db *postgresDatabase) AddNewTorrent(infoHash []byte, name string, files []
 		log.Printf("Ignoring a torrent whose name is not UTF-8 compliant. infoHash: %s", infoHash)
 		return nil
 	}
+	name = strings.ReplaceAll(name, "\x00", "")
 
 	tx, err := db.conn.Begin()
 	if err != nil {
@@ -156,21 +164,17 @@ func (db *postgresDatabase) Close() error {
 }
 
 func (db *postgresDatabase) GetNumberOfTorrents() (uint, error) {
-	// Using estimated number of rows which can make queries much faster
-	// https://www.postgresql.org/message-id/568BF820.9060101%40comarch.com
-	// https://wiki.postgresql.org/wiki/Count_estimate
-	rows, err := db.conn.Query(
-		"SELECT reltuples::BIGINT AS estimate_count FROM pg_class WHERE relname='torrents';",
-	)
+	rows, err := db.conn.Query("SELECT COUNT(*)::BIGINT AS exact_count FROM torrents;")
 	if err != nil {
 		return 0, err
 	}
 	defer rows.Close()
 
 	if !rows.Next() {
-		return 0, fmt.Errorf("no rows returned from `SELECT reltuples::BIGINT AS estimate_count`")
+		return 0, errors.New("no rows returned from `SELECT COUNT(*)::BIGINT AS exact_count FROM torrents;`")
 	}
 
+	// Returns int64: https://godoc.org/github.com/lib/pq#hdr-Data_Types
 	var n *int64
 	if err = rows.Scan(&n); err != nil {
 		return 0, err
@@ -439,11 +443,8 @@ func (db *postgresDatabase) setupDatabase() error {
 	if rows.Err() != nil {
 		return err
 	}
-
 	if !trgmInstalled {
-		return fmt.Errorf(
-			"pg_trgm extension is not enabled. You need to execute 'CREATE EXTENSION pg_trgm' on this database",
-		)
+		log.Println("pg_trgm extension is not enabled. You need to execute 'CREATE EXTENSION pg_trgm' on this database")
 	}
 
 	// Initial Setup for schema version 0:
