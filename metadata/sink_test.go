@@ -110,9 +110,9 @@ func TestFlush(t *testing.T) {
 
 	var infoHash [20]byte
 	copy(infoHash[:], testMetadata.InfoHash)
-	sink.incomingInfoHashesMx.Lock()
+	sink.incomingInfoHashesMx.RLock()
 	_, exists := sink.incomingInfoHashes[infoHash]
-	sink.incomingInfoHashesMx.Unlock()
+	sink.incomingInfoHashesMx.RUnlock()
 	if exists {
 		t.Error("InfoHash was not deleted after flush")
 	}

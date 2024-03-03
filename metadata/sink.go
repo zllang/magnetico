@@ -36,7 +36,7 @@ type Sink struct {
 	drain       chan Metadata
 
 	incomingInfoHashes   map[[20]byte][]net.TCPAddr
-	incomingInfoHashesMx sync.Mutex
+	incomingInfoHashesMx sync.RWMutex
 
 	terminated  bool
 	termination chan interface{}
@@ -59,28 +59,34 @@ func (ms *Sink) Sink(res dht.Result) {
 	if ms.terminated {
 		log.Panicln("Trying to Sink() an already closed Sink!")
 	}
-	ms.incomingInfoHashesMx.Lock()
-	defer ms.incomingInfoHashesMx.Unlock()
 
 	// cap the max # of leeches
-	if len(ms.incomingInfoHashes) >= ms.maxNLeeches {
+	ms.incomingInfoHashesMx.RLock()
+	currentLeeches := len(ms.incomingInfoHashes)
+	ms.incomingInfoHashesMx.RUnlock()
+	if currentLeeches >= ms.maxNLeeches {
 		return
 	}
 
 	infoHash := res.InfoHash()
 	peerAddrs := res.PeerAddrs()
 
-	if _, exists := ms.incomingInfoHashes[infoHash]; exists {
+	ms.incomingInfoHashesMx.RLock()
+	_, exists := ms.incomingInfoHashes[infoHash]
+	ms.incomingInfoHashesMx.RUnlock()
+	if exists || len(peerAddrs) <= 0 {
 		return
-	} else if len(peerAddrs) > 0 {
-		peer := peerAddrs[0]
-		ms.incomingInfoHashes[infoHash] = peerAddrs[1:]
-
-		go NewLeech(infoHash, &peer, ms.PeerID, LeechEventHandlers{
-			OnSuccess: ms.flush,
-			OnError:   ms.onLeechError,
-		}).Do(time.Now().Add(ms.deadline))
 	}
+
+	peer := peerAddrs[0]
+	ms.incomingInfoHashesMx.Lock()
+	ms.incomingInfoHashes[infoHash] = peerAddrs[1:]
+	ms.incomingInfoHashesMx.Unlock()
+
+	go NewLeech(infoHash, &peer, ms.PeerID, LeechEventHandlers{
+		OnSuccess: ms.flush,
+		OnError:   ms.onLeechError,
+	}).Do(time.Now().Add(ms.deadline))
 }
 
 func (ms *Sink) Drain() <-chan Metadata {
@@ -109,19 +115,23 @@ func (ms *Sink) flush(result Metadata) {
 }
 
 func (ms *Sink) onLeechError(infoHash [20]byte, err error) {
-	ms.incomingInfoHashesMx.Lock()
-	defer ms.incomingInfoHashesMx.Unlock()
-
-	if len(ms.incomingInfoHashes[infoHash]) > 0 {
-		peer := ms.incomingInfoHashes[infoHash][0]
-		ms.incomingInfoHashes[infoHash] = ms.incomingInfoHashes[infoHash][1:]
-		go NewLeech(infoHash, &peer, ms.PeerID, LeechEventHandlers{
-			OnSuccess: ms.flush,
-			OnError:   ms.onLeechError,
-		}).Do(time.Now().Add(ms.deadline))
-	} else {
+	ms.incomingInfoHashesMx.RLock()
+	leechesPerInfoHash := len(ms.incomingInfoHashes[infoHash])
+	ms.incomingInfoHashesMx.RUnlock()
+	if leechesPerInfoHash <= 0 {
 		ms.delete(infoHash)
+		return
 	}
+
+	ms.incomingInfoHashesMx.Lock()
+	peer := ms.incomingInfoHashes[infoHash][0]
+	ms.incomingInfoHashes[infoHash] = ms.incomingInfoHashes[infoHash][1:]
+	ms.incomingInfoHashesMx.Unlock()
+
+	go NewLeech(infoHash, &peer, ms.PeerID, LeechEventHandlers{
+		OnSuccess: ms.flush,
+		OnError:   ms.onLeechError,
+	}).Do(time.Now().Add(ms.deadline))
 }
 
 func (ms *Sink) delete(infoHash [20]byte) {
