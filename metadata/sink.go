@@ -116,19 +116,21 @@ func (ms *Sink) flush(result Metadata) {
 
 func (ms *Sink) onLeechError(infoHash [20]byte, err error) {
 	ms.incomingInfoHashesMx.RLock()
-	leechesPerInfoHash := len(ms.incomingInfoHashes[infoHash])
+	peers, exists := ms.incomingInfoHashes[infoHash]
 	ms.incomingInfoHashesMx.RUnlock()
-	if leechesPerInfoHash <= 0 {
-		ms.delete(infoHash)
+	if !exists || len(peers) == 0 {
 		return
 	}
 
-	ms.incomingInfoHashesMx.Lock()
-	peer := ms.incomingInfoHashes[infoHash][0]
-	ms.incomingInfoHashes[infoHash] = ms.incomingInfoHashes[infoHash][1:]
-	ms.incomingInfoHashesMx.Unlock()
+	if len(peers) == 1 {
+		ms.delete(infoHash)
+	} else {
+		ms.incomingInfoHashesMx.Lock()
+		ms.incomingInfoHashes[infoHash] = peers[1:]
+		ms.incomingInfoHashesMx.Unlock()
+	}
 
-	go NewLeech(infoHash, &peer, ms.PeerID, LeechEventHandlers{
+	go NewLeech(infoHash, &peers[0], ms.PeerID, LeechEventHandlers{
 		OnSuccess: ms.flush,
 		OnError:   ms.onLeechError,
 	}).Do(time.Now().Add(ms.deadline))
