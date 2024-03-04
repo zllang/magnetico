@@ -121,7 +121,7 @@ func (l *Leech) doExHandshake() error {
 
 	// Extension Handshake has the Extension Message ID = 0x00
 	if rExMessage[1] != 0 {
-		return errors.New("first extension message is not an extension handshake " + err.Error())
+		return errors.New("first extension message is not an extension handshake")
 	}
 
 	rRootDict := new(rootDict)
