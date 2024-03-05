@@ -100,11 +100,7 @@ func (db *postgresDatabase) AddNewTorrent(infoHash []byte, name string, files []
 	// returning from the function so the tx.Rollback() call will fail, trying to rollback a
 	// committed transaction. BUT, if an error occurs, we'll get our transaction rollback'ed, which
 	// is nice.
-	defer func() {
-		if err := tx.Rollback(); err != nil {
-			log.Println(err.Error())
-		}
-	}()
+	defer db.rollback(tx)
 
 	var totalSize uint64 = 0
 	for _, file := range files {
@@ -426,12 +422,7 @@ func (db *postgresDatabase) setupDatabase() error {
 	if err != nil {
 		return errors.New("sql.DB.Begin " + err.Error())
 	}
-
-	defer func() {
-		if err := tx.Rollback(); err != nil {
-			log.Println(err.Error())
-		}
-	}()
+	defer db.rollback(tx)
 
 	rows, err := db.conn.Query("SELECT 1 FROM pg_extension WHERE extname = 'pg_trgm';")
 	if err != nil {
@@ -534,6 +525,12 @@ func (db *postgresDatabase) setupDatabase() error {
 func (db *postgresDatabase) closeRows(rows *sql.Rows) {
 	if err := rows.Close(); err != nil {
 		log.Printf("could not close row %v", err)
+	}
+}
+
+func (db *postgresDatabase) rollback(tx *sql.Tx) {
+	if err := tx.Rollback(); err != nil {
+		log.Printf("could not rollback transaction %v", err)
 	}
 }
 
