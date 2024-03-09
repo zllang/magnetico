@@ -50,7 +50,7 @@ func serve() (cmd bargle.Command) {
 			mi := metainfo.MetaInfo{
 				InfoBytes: bencode.MustMarshal(info),
 			}
-			pc, err := storage.NewDefaultPieceCompletionForDir(".")
+			pc, err := storage.NewBoltPieceCompletion(".")
 			if err != nil {
 				return fmt.Errorf("new piece completion: %w", err)
 			}

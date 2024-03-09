@@ -19,7 +19,6 @@ require (
 	github.com/anacrolix/missinggo/v2 v2.7.3
 	github.com/anacrolix/multiless v0.3.0
 	github.com/anacrolix/possum/go v0.1.0
-	github.com/anacrolix/squirrel v0.6.0
 	github.com/anacrolix/sync v0.5.1
 	github.com/anacrolix/tagflag v1.3.0
 	github.com/anacrolix/upnp v0.1.3-0.20220123035249-922794e51c96
@@ -33,7 +32,6 @@ require (
 	github.com/elliotchance/orderedmap v1.4.0
 	github.com/frankban/quicktest v1.14.6
 	github.com/fsnotify/fsnotify v1.5.4
-	github.com/go-llsqlite/adapter v0.0.0-20230927005056-7f5ce7f0c916
 	github.com/google/btree v1.1.2
 	github.com/google/go-cmp v0.5.9
 	github.com/gorilla/websocket v1.5.0
@@ -67,7 +65,6 @@ require (
 	github.com/bits-and-blooms/bitset v1.13.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.1.3 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
-	github.com/go-llsqlite/crawshaw v0.4.0 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
@@ -77,7 +74,6 @@ require (
 	github.com/klauspost/cpuid/v2 v2.2.3 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/minio/sha256-simd v1.0.0 // indirect
 	github.com/mr-tron/base58 v1.2.0 // indirect
@@ -102,7 +98,6 @@ require (
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.35.0 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
-	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/rs/dnscache v0.0.0-20211102005908-e0241e321417 // indirect
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
@@ -119,11 +114,6 @@ require (
 	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.1.6 // indirect
-	modernc.org/libc v1.22.3 // indirect
-	modernc.org/mathutil v1.5.0 // indirect
-	modernc.org/memory v1.5.0 // indirect
-	modernc.org/sqlite v1.21.1 // indirect
-	zombiezen.com/go/sqlite v0.13.1 // indirect
 )
 
 retract (

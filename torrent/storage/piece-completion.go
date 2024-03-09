@@ -18,7 +18,7 @@ type PieceCompletion interface {
 }
 
 func pieceCompletionForDir(dir string) (ret PieceCompletion) {
-	ret, err := NewDefaultPieceCompletionForDir(dir)
+	ret, err := NewBoltPieceCompletion(dir)
 	if err != nil {
 		log.Printf("couldn't open piece completion db in %q: %s", dir, err)
 		ret = NewMapPieceCompletion()
