@@ -106,7 +106,7 @@ func (db *sqlite3Database) AddNewTorrent(infoHash []byte, name string, files []F
 	// returning from the function so the tx.Rollback() call will fail, trying to rollback a
 	// committed transaction. BUT, if an error occurs, we'll get our transaction rollback'ed, which
 	// is nice.
-	defer tx.Rollback()
+	defer db.rollback(tx)
 
 	var totalSize uint64 = 0
 	for _, file := range files {
@@ -513,7 +513,7 @@ func (db *sqlite3Database) setupDatabase() error {
 	// returning from the function so the tx.Rollback() call will fail, trying to rollback a
 	// committed transaction. BUT, if an error occurs, we'll get our transaction rollback'ed, which
 	// is nice.
-	defer tx.Rollback()
+	defer db.rollback(tx)
 
 	// Initial Setup for `user_version` 0:
 	// FROZEN.
@@ -677,6 +677,12 @@ func (db *sqlite3Database) setupDatabase() error {
 	}
 
 	return nil
+}
+
+func (db *sqlite3Database) rollback(tx *sql.Tx) {
+	if err := tx.Rollback(); err != nil {
+		log.Printf("could not rollback transaction %v", err)
+	}
 }
 
 func executeTemplate(text string, data interface{}, funcs template.FuncMap) string {
