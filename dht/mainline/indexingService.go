@@ -101,29 +101,26 @@ func (is *IndexingService) index() {
 }
 
 func (is *IndexingService) bootstrap() {
-	bootstrappingNodes := []string{
-		"dht.tgragnato.it:80",
-		"dht.tgragnato.it:443",
-		"dht.tgragnato.it:1337",
-		"dht.tgragnato.it:6969",
-		"dht.tgragnato.it:6881",
-		"dht.tgragnato.it:25401",
+	bootstrappingPorts := []int{80, 443, 1337, 6969, 6881, 25401}
+	bootstrappingIPs, err := net.LookupIP("dht.tgragnato.it")
+	if err != nil {
+		log.Println("Could NOT resolve the IP of the bootstrapping nodes!")
+		return
 	}
 
-	for _, node := range bootstrappingNodes {
-		target := make([]byte, 20)
-		_, err := rand.Read(target)
-		if err != nil {
-			log.Panicln("Could NOT generate random bytes during bootstrapping!")
-		}
+	for _, ip := range bootstrappingIPs {
+		for _, port := range bootstrappingPorts {
+			target := make([]byte, 20)
+			if _, err := rand.Read(target); err != nil {
+				log.Println("Could NOT generate random bytes during bootstrapping!")
+				return
+			}
 
-		addr, err := net.ResolveUDPAddr("udp", node)
-		if err != nil {
-			log.Printf("Could NOT resolve (UDP) address of the bootstrapping node! %s", node)
-			continue
+			go is.protocol.SendMessage(
+				NewFindNodeQuery(is.nodeID, target),
+				&net.UDPAddr{IP: ip, Port: port},
+			)
 		}
-
-		is.protocol.SendMessage(NewFindNodeQuery(is.nodeID, target), addr)
 	}
 }
 
