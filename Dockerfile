@@ -5,7 +5,7 @@ WORKDIR /workspace
 COPY go.mod .
 COPY go.sum .
 COPY . .
-RUN go mod download && go build ./cmd/magneticod && go build ./cmd/magneticow
+RUN go mod download && go build --tags fts5 ./cmd/magneticod && go build --tags fts5 ./cmd/magneticow
 
 FROM alpine:3.19
 WORKDIR /tmp

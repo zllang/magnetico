@@ -529,7 +529,8 @@ func (db *postgresDatabase) closeRows(rows *sql.Rows) {
 }
 
 func (db *postgresDatabase) rollback(tx *sql.Tx) {
-	if err := tx.Rollback(); err != nil {
+	if err := tx.Rollback(); err != nil &&
+		!strings.Contains(err.Error(), "transaction has already been committed") {
 		log.Printf("could not rollback transaction %v", err)
 	}
 }

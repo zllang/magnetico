@@ -7,8 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/url"
-	"os"
-	"path"
+	"strings"
 	"text/template"
 	"time"
 
@@ -24,11 +23,6 @@ type sqlite3Database struct {
 
 func makeSqlite3Database(url_ *url.URL) (Database, error) {
 	db := new(sqlite3Database)
-
-	dbDir, _ := path.Split(url_.Path)
-	if err := os.MkdirAll(dbDir, 0755); err != nil {
-		return nil, errors.New("mkdirAll error for `" + dbDir + "` " + err.Error())
-	}
 
 	var err error
 	// To handle spaces in the file path, we ensure that URI path handling is triggered in the
@@ -680,7 +674,8 @@ func (db *sqlite3Database) setupDatabase() error {
 }
 
 func (db *sqlite3Database) rollback(tx *sql.Tx) {
-	if err := tx.Rollback(); err != nil {
+	if err := tx.Rollback(); err != nil &&
+		!strings.Contains(err.Error(), "transaction has already been committed") {
 		log.Printf("could not rollback transaction %v", err)
 	}
 }
