@@ -33,8 +33,7 @@ func NewClient(url_ *url.URL, opts NewClientOpts) Client {
 				DialContext: opts.DialContext,
 				Proxy:       opts.Proxy,
 				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true,
-					ServerName:         opts.ServerName,
+					ServerName: opts.ServerName,
 				},
 				// This is for S3 trackers that hold connections open.
 				DisableKeepAlives: !opts.AllowKeepAlive,
