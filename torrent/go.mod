@@ -21,7 +21,6 @@ require (
 	github.com/anacrolix/possum/go v0.1.0
 	github.com/anacrolix/sync v0.5.1
 	github.com/anacrolix/tagflag v1.3.0
-	github.com/anacrolix/upnp v0.1.3-0.20220123035249-922794e51c96
 	github.com/anacrolix/utp v0.1.0
 	github.com/bahlo/generic-list-go v0.2.0
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8

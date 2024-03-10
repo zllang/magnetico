@@ -57,7 +57,6 @@ type ClientConfig struct {
 	ListenHost              func(network string) string
 	ListenPort              int
 	NoDefaultPortForwarding bool
-	UpnpID                  string
 	DisablePEX              bool `long:"disable-pex"`
 
 	// Never send chunks to peers.
@@ -207,7 +206,6 @@ func NewDefaultClientConfig() *ClientConfig {
 		HTTPUserAgent:                  version.DefaultHttpUserAgent,
 		ExtendedHandshakeClientVersion: version.DefaultExtendedHandshakeClientVersion,
 		Bep20:                          version.DefaultBep20Prefix,
-		UpnpID:                         version.DefaultUpnpId,
 		NominalDialTimeout:             20 * time.Second,
 		MinDialTimeout:                 3 * time.Second,
 		EstablishedConnsPerTorrent:     50,

@@ -14,7 +14,6 @@ var (
 	// about.
 	DefaultBep20Prefix   = "-GT0003-"
 	DefaultHttpUserAgent string
-	DefaultUpnpId        string
 )
 
 func init() {
@@ -50,7 +49,6 @@ func init() {
 		longPackageName,
 		torrentVersion,
 	)
-	DefaultUpnpId = fmt.Sprintf("%v %v", mainPath, mainVersion)
 	// Per https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent#library_and_net_tool_ua_strings
 	DefaultHttpUserAgent = fmt.Sprintf(
 		"%v-%v/%v",
