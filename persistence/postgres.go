@@ -35,7 +35,6 @@ func makePostgresDatabase(url_ *url.URL) (Database, error) {
 		query.Set("search_path", "magneticod")
 	} else {
 		db.schema = schema
-		query := url_.Query()
 		query.Set("search_path", schema)
 	}
 	query.Del("schema")
