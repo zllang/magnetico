@@ -491,7 +491,7 @@ func (db *sqlite3Database) setupDatabase() error {
 	// our side.
 	_, err := db.conn.Exec(`
 		PRAGMA journal_mode=WAL;
-		PRAGMA temp_store=1;
+		PRAGMA temp_store=2;
 		PRAGMA foreign_keys=ON;
 		PRAGMA encoding='UTF-8';
 	`)
