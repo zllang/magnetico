@@ -94,6 +94,13 @@ func Test_sqlite3Database_AddNewTorrent(t *testing.T) {
 			name:     "Test Zeroes",
 			infoHash: []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			files:    []File{{Size: 0, Path: "test"}},
+			wantErr:  false,
+		},
+		{
+			name:     "Test NonZeroes",
+			infoHash: []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			files:    []File{{Size: 1, Path: "test"}},
+			wantErr:  false,
 		},
 	}
 	for _, tt := range tests {
