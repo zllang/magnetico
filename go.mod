@@ -12,6 +12,7 @@ require (
 	github.com/gorilla/schema v1.2.1
 	github.com/jackc/pgx/v5 v5.5.5
 	github.com/jessevdk/go-flags v1.5.0
+	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	golang.org/x/crypto v0.21.0
 	golang.org/x/text v0.14.0
 )
@@ -51,7 +52,6 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20231201235250-de7065d80cb9 // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
-	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
