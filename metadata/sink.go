@@ -27,6 +27,8 @@ type Metadata struct {
 	DiscoveredOn int64
 	// Files must be populated for both single-file and multi-file torrents!
 	Files []persistence.File
+	// Content classification
+	classification int
 }
 
 type Sink struct {
